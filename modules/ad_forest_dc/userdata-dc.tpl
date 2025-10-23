@@ -1,4 +1,5 @@
 #cloud-config
+hostname: ${HOSTNAME}
 write_files:
   # --- Post-promotion script: runs after reboot as a scheduled task ---
   - path: C:\Windows\Temp\post_promo.ps1

@@ -51,10 +51,6 @@ variable "netbios_name" {
   type = string
 }
 
-variable "dc_ip" {
-  type = string
-}
-
 variable "ready_check_url" {
   type = string
 }
@@ -72,3 +68,9 @@ variable "disk_size_gb" {
   type    = number
   default = 100
 }
+
+variable "dc_ip" {
+  description = "IP address of the domain controller"
+  type        = string
+}
+

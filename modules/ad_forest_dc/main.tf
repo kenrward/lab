@@ -90,3 +90,8 @@ resource "proxmox_virtual_environment_vm" "dc" {
 output "vm_id" {
   value = proxmox_virtual_environment_vm.dc.vm_id
 }
+
+output "dc_ip" {
+  value = proxmox_virtual_environment_vm.this.ipv4_addresses[0]
+}
+
