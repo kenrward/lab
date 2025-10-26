@@ -14,13 +14,14 @@ resource "proxmox_virtual_environment_file" "member_userdata" {
   node_name    = var.node
   source_raw {
     data = templatefile("${path.module}/userdata-member.tpl", {
+      HOSTNAME      = var.vm_name
       DOMAIN_FQDN   = var.domain_fqdn
       NETBIOS_NAME  = var.netbios_name
-      DC_IP         = var.dc_ip
       READY_URL     = var.ready_check_url
+      ADMIN_PASSWORD = var.admin_password
       JOIN_USERNAME = var.join_username
       JOIN_PASSWORD = var.join_password
-      MEMBER_IP     = local.member_ip
+      DC_IP = var.dc_ip
     })
     file_name = "userdata-${var.vm_name}.yaml"
   }
@@ -69,7 +70,8 @@ resource "proxmox_virtual_environment_vm" "member" {
         address = "dhcp"
       }
     }
-    user_data_file_id = proxmox_virtual_environment_file.member_userdata.datastore_id
+    user_data_file_id = "${proxmox_virtual_environment_file.member_userdata.datastore_id}:snippets/${proxmox_virtual_environment_file.member_userdata.file_name}"
+
 
   }
 }

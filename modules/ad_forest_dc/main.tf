@@ -20,6 +20,7 @@ resource "proxmox_virtual_environment_file" "dc_userdata" {
   node_name    = var.node
   source_raw {
     data = templatefile("${path.module}/userdata-dc.tpl", {
+      HOSTNAME       = var.vm_name
       DOMAIN_FQDN    = var.domain_fqdn
       NETBIOS_NAME   = var.netbios_name
       DSRM_PASSWORD  = var.dsrm_password
@@ -86,12 +87,3 @@ resource "proxmox_virtual_environment_vm" "dc" {
 
   }
 }
-
-output "vm_id" {
-  value = proxmox_virtual_environment_vm.dc.vm_id
-}
-
-output "dc_ip" {
-  value = proxmox_virtual_environment_vm.this.ipv4_addresses[0]
-}
-

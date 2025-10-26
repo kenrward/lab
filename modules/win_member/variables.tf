@@ -74,3 +74,9 @@ variable "dc_ip" {
   type        = string
 }
 
+variable "admin_password" {
+  type      = string
+  sensitive = true
+}
+
+

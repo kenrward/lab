@@ -32,8 +32,28 @@ write_files:
           try {
               New-Item -ItemType Directory -Path "${READY_PATH}" -Force | Out-Null
               netsh advfirewall firewall add rule name="ReadyProbe" dir=in action=allow protocol=TCP localport=${READY_PORT} | Out-Null
+          # --- Start lightweight readiness HTTP listener ---
+
           } catch {}
       }
+      # --- Start lightweight readiness HTTP listener ---
+        try {
+            $prefix = "http://+:${READY_PORT}/"
+            Write-Host "Starting readiness listener on $prefix"
+            $listener = New-Object System.Net.HttpListener
+            $listener.Prefixes.Add($prefix)
+            $listener.Start()
+            while ($listener.IsListening) {
+                $context = $listener.GetContext()
+                $response = $context.Response
+                $bytes = [System.Text.Encoding]::UTF8.GetBytes("READY")
+                $response.OutputStream.Write($bytes, 0, $bytes.Length)
+                $response.OutputStream.Close()
+            }
+        } catch {
+            Write-Warning "Failed to start readiness listener: $_"
+        }
+
 
       # Self-cleanup
       schtasks /Delete /TN "ZN-PostPromo" /F
@@ -53,14 +73,6 @@ write_files:
 
       $LogFile = "C:\Windows\Temp\ADDSInstall.log"
       Start-Transcript -Path $LogFile -Append
-
-      # Ensure hostname before promotion
-      try {
-          $desired = "lab-dc01"
-          if ((hostname) -ne $desired) {
-              Rename-Computer -NewName $desired -Force
-          }
-      } catch {}
 
       # Make sure Administrator account is active
       net user Administrator "$adminPlain" /active:yes
@@ -90,4 +102,5 @@ write_files:
 
 # --- Run script as 64-bit PowerShell in background ---
 runcmd:
+  - [ powershell.exe, -Command, "Restart-NetAdapter -Name 'Ethernet'; Start-Sleep 5; ipconfig /renew" ]
   - [ powershell.exe, -NoLogo, -NoProfile, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\promote_dc.ps1" ]

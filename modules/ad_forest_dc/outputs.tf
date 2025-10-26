@@ -1,8 +1,31 @@
 output "domain_fqdn" { value = var.domain_fqdn }
 output "dc_ip" {
-  value = local.dc_ip
+  description = "Primary IPv4 address of the Domain Controller (filtered)"
+  value = try(
+    tolist([
+      for ip in flatten([
+        for iface in proxmox_virtual_environment_vm.dc.ipv4_addresses : iface
+        if length(iface) > 0
+      ]) : ip
+      if length(trimspace(ip)) > 0
+      && !startswith(ip, "169.254.")
+      && !startswith(ip, "127.")
+    ])[0],
+    "0.0.0.0"
+  )
 }
-
 output "ready_check_url" {
-  value = "http://${local.dc_ip}:${var.ready_port}${var.ready_path}"
+  description = "HTTP readiness probe URL for the DC"
+  value = "http://${try(
+    tolist([
+      for ip in flatten([
+        for iface in proxmox_virtual_environment_vm.dc.ipv4_addresses : iface
+        if length(iface) > 0
+      ]) : ip
+      if length(trimspace(ip)) > 0
+      && !startswith(ip, "169.254.")
+      && !startswith(ip, "127.")
+    ])[0],
+    "0.0.0.0"
+  )}:${var.ready_port}/"
 }

@@ -2,25 +2,55 @@
 hostname: ${HOSTNAME}
 
 write_files:
+
   - path: C:\Windows\Temp\join_domain.ps1
-    permissions: '0644'
+    permissions: "0644"
     content: |
+      [CmdletBinding()]
+      param()
       $domainFqdn = "${DOMAIN_FQDN}"
-      $adminPlain = "${ADMIN_PASSWORD}"
       $dcIp       = "${DC_IP}"
+      $adminUser   = "${JOIN_USERNAME}"
+      $adminPass   = "${JOIN_PASSWORD}" | ConvertTo-SecureString -AsPlainText -Force
+      $credential = New-Object System.Management.Automation.PSCredential($joinUser, $joinPass)
 
-      # Set DNS to point to DC
-      $adapter = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -First 1
-      Set-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex -ServerAddresses $dcIp
-
-      # Wait for domain DNS to resolve
-      $max = 30
-      for ($i = 0; $i -lt $max; $i++) {
-          if (Test-Connection -ComputerName $domainFqdn -Count 1 -Quiet) { break }
-          Start-Sleep -Seconds 5
+      $log = "C:\Windows\Temp\DomainJoin.log"
+      Start-Transcript -Path $log -Append
+      
+      Write-Host "Setting DNS to $dcIp..."
+      Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
+          Set-DnsClientServerAddress -InterfaceAlias $_.InterfaceAlias -ServerAddresses $dcIp
       }
 
-      # Join domain
-      Add-Computer -DomainName $domainFqdn -Credential (New-Object PSCredential("Administrator", (ConvertTo-SecureString $adminPlain -AsPlainText -Force))) -Restart
+      # --- Wait for DC to respond to LDAP ---
+      $maxTries = 30
+      for ($i = 1; $i -le $maxTries; $i++) {
+          Write-Host "Checking DC LDAP availability... Attempt $i"
+          if (Test-NetConnection -ComputerName $dcIp -Port 389 -InformationLevel Quiet) {
+              Write-Host "✅ DC LDAP reachable!"
+              break
+          }
+          Start-Sleep -Seconds 10
+      }
+
+      # --- Attempt to join domain ---
+      for ($i = 1; $i -le 5; $i++) {
+          try {
+              Add-Computer -DomainName $domainFqdn -Credential $credential -Force -ErrorAction Stop
+              Write-Host "✅ Successfully joined domain!"
+              Restart-Computer -Force
+              break
+          } catch {
+              Write-Warning "Join failed (attempt $i): $($_.Exception.Message)"
+              Start-Sleep -Seconds 15
+          }
+      }
+
+      Stop-Transcript
+
 runcmd:
-  - [ powershell.exe, -NoLogo, -NoProfile, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\join_domain.ps1" ]
+  - [ powershell.exe, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\join_domain.ps1" ]
+
+
+
+
