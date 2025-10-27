@@ -1,19 +1,82 @@
-.terraform.lock.hcl
-*.tfstate
-*.tfstate.backup
+# ----------------------------
+# OS / Editor junk
+# ----------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.bak
+*.tmp
+*~
+
+# ----------------------------
+# Terraform
+# ----------------------------
+# Local Terraform directories
 .terraform/
+.terraform.lock.hcl
+
+# State files (these can contain secrets!)
+*.tfstate
+*.tfstate.*
 crash.log
 override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
-.terraformrc
-terraform.rc
-*.log
+
+# Local execution plans
+*.tfplan
+
+# Sensitive variable files
+*.auto.tfvars
 *.tfvars
-*.tfvars.json
-.terragrunt-cache/
-.terraformrc
-terragrunt.hcl
-.terragrunt-cache/
-scratch.txt
+terraform.tfvars
+secrets.tfvars
+.env
+.env.*
+
+# ----------------------------
+# Packer (if used)
+# ----------------------------
+packer_cache/
+output-*/
+
+# ----------------------------
+# PowerShell / Windows
+# ----------------------------
+*.ps1~          # temporary files
+*.psd1~         # module descriptor temp files
+*.psm1~         # module temp files
+*.log
+*.zip
+*.exe
+*.iso
+*.vhdx
+*.vhd
+*.ova
+*.ovf
+
+# ----------------------------
+# IDE / Editor
+# ----------------------------
+.vscode/
+.idea/
+*.code-workspace
+
+# ----------------------------
+# macOS / Linux cruft
+# ----------------------------
+.trash/
+.AppleDouble
+.Spotlight-V100
+.fseventsd
+
+# ----------------------------
+# Misc Lab Artifacts
+# ----------------------------
+# If you store generated configs or VM snippets locally
+snippets/
+*.img
+*.qcow2
