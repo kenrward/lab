@@ -29,3 +29,8 @@ output "ready_check_url" {
     "0.0.0.0"
   )}:${var.ready_port}/"
 }
+
+output "vm_id" {
+  description = "VM ID of the Domain Controller in Proxmox"
+  value       = proxmox_virtual_environment_vm.dc.id
+}

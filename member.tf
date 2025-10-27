@@ -4,13 +4,14 @@ resource "null_resource" "wait_for_dc" {
   provisioner "local-exec" {
     command     = <<EOT
       echo "Waiting for DC to signal readiness..."
+      sleep 30
       for i in {1..90}; do
         if curl -sf ${module.ad_forest_dc.ready_check_url} | grep -q READY; then
           echo "✅ DC is ready!"
           exit 0
         fi
         echo "⏳ DC not ready yet... retrying ($i/90)"
-        sleep 10
+        sleep 30
       done
       echo "❌ Timed out waiting for DC readiness"
       exit 1

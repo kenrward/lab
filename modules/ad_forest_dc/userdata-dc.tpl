@@ -54,10 +54,22 @@ write_files:
             Write-Warning "Failed to start readiness listener: $_"
         }
 
-
       # Self-cleanup
-      schtasks /Delete /TN "ZN-PostPromo" /F
-      Stop-Transcript
+        schtasks /Delete /TN "ZN-PostPromo" /F
+
+        # Start readiness listener
+        $listener = [System.Net.HttpListener]::new()
+        $listener.Prefixes.Add("http://+:${READY_PORT}/")
+        $listener.Start()
+        Write-Host "Serving READY page on port ${READY_PORT}"
+        while ($listener.IsListening) {
+            $context = $listener.GetContext()
+            $response = $context.Response
+            $body = [System.Text.Encoding]::UTF8.GetBytes("READY")
+            $response.OutputStream.Write($body, 0, $body.Length)
+            $response.Close()
+        }
+        Stop-Transcript
 
   # --- Promotion script: executed by Cloudbase-Init ---
   - path: C:\Windows\Temp\promote_dc.ps1
