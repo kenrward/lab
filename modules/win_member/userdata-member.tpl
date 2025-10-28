@@ -12,15 +12,33 @@ write_files:
       $dcIp       = "${DC_IP}"
       $adminUser   = "${JOIN_USERNAME}"
       $adminPass   = "${JOIN_PASSWORD}" | ConvertTo-SecureString -AsPlainText -Force
-      $credential = New-Object System.Management.Automation.PSCredential($joinUser, $joinPass)
+      $credential = New-Object System.Management.Automation.PSCredential($adminPass, $adminPass)
 
       $log = "C:\Windows\Temp\DomainJoin.log"
       Start-Transcript -Path $log -Append
       
-      Write-Host "Setting DNS to $dcIp..."
-      Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | ForEach-Object {
-          Set-DnsClientServerAddress -InterfaceAlias $_.InterfaceAlias -ServerAddresses $dcIp
-      }
+      Write-Host "Waiting for network adapter to be ready..."
+        $tries = 0
+        do {
+            $adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+            if ($adapters) { break }
+            Start-Sleep -Seconds 5
+            $tries++
+        } until ($adapters -or $tries -ge 20)
+
+        if (-not $adapters) {
+            Write-Warning "No active adapters found, skipping DNS config."
+        } else {
+            Write-Host "Setting DNS to $dcIp on $($adapters.Count) adapter(s)..."
+            foreach ($adapter in $adapters) {
+                try {
+                    Set-DnsClientServerAddress -InterfaceAlias $adapter.InterfaceAlias -ServerAddresses $dcIp -ErrorAction Stop
+                } catch {
+                    Write-Warning "Failed to set DNS on $($adapter.InterfaceAlias): $($_.Exception.Message)"
+                }
+            }
+        }
+
 
       # --- Wait for DC to respond to LDAP ---
       $maxTries = 30

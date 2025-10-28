@@ -1,6 +1,5 @@
 output "dc_ip" {
-  description = "Primary IPv4 address of the Domain Controller"
-  value       = module.ad_forest_dc.dc_ip
+  value = split("/", var.dc_static_ip)[0]
 }
 
 output "ready_check_url" {

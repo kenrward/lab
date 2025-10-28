@@ -77,3 +77,16 @@ variable "disk_size_gb" {
   type    = number
   default = 100
 }
+
+variable "dc_static_ip" {
+  description = "Static IPv4 address for the domain controller (include CIDR)"
+  type        = string
+  default     = "192.168.86.210/24"
+}
+
+variable "gateway" {
+  description = "Default gateway for static IPs"
+  type        = string
+  default     = "192.168.86.1"
+}
+
