@@ -102,3 +102,17 @@ variable "vms" {
   }))
 }
 
+# --- Static networking for DC ---
+variable "dc_static_ip" {
+  description = "Static IPv4 address and prefix for the domain controller (CIDR format)"
+  type        = string
+  default     = "192.168.86.210/24"
+}
+
+variable "gateway" {
+  description = "Default IPv4 gateway for static DC networking"
+  type        = string
+  default     = "192.168.86.1"
+}
+
+

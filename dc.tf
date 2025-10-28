@@ -15,5 +15,7 @@ module "ad_forest_dc" {
   template_vm_id = var.base_template_id
   target_storage = var.storage
 
-}
+  dc_static_ip   = var.dc_static_ip
+  gateway        = var.gateway
 
+}

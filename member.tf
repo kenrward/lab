@@ -1,31 +1,10 @@
-resource "null_resource" "wait_for_dc" {
-  depends_on = [module.ad_forest_dc]
-
-  provisioner "local-exec" {
-    command     = <<EOT
-      echo "Waiting for DC to signal readiness..."
-      sleep 30
-      for i in {1..90}; do
-        if curl -sf ${module.ad_forest_dc.ready_check_url} | grep -q READY; then
-          echo "✅ DC is ready!"
-          exit 0
-        fi
-        echo "⏳ DC not ready yet... retrying ($i/90)"
-        sleep 30
-      done
-      echo "❌ Timed out waiting for DC readiness"
-      exit 1
-    EOT
-    interpreter = ["bash", "-c"]
-  }
-}
-
-
-
 
 module "win_member" {
+  for_each = {
+    for name, cfg in local.vms : name => cfg if cfg.role == "member"
+  }
   source         = "./modules/win_member"
-  vm_name        = local.vms["app1"].name
+  vm_name        = each.key
   domain_fqdn    = var.domain_fqdn
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
@@ -42,5 +21,5 @@ module "win_member" {
   # --- Optional health/ready check ---
   ready_check_url = "http://${module.ad_forest_dc.dc_ip}:8080"
 
-  depends_on = [null_resource.wait_for_dc]
+  depends_on = [module.ad_forest_dc]
 }
