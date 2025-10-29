@@ -36,7 +36,7 @@ resource "vsphere_virtual_machine" "dc" {
   folder           = var.folder
   num_cpus         = var.cores
   memory           = var.memory_mb
-  guest_id         = "windows9Server64Guest"
+  guest_id         = "windows2019srvNext_64Guest"
   scsi_type        = "lsilogic-sas"
 
   network_interface {
