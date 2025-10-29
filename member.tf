@@ -1,25 +1,44 @@
-
 module "win_member" {
   for_each = {
     for name, cfg in local.vms : name => cfg if cfg.role == "member"
   }
-  source         = "./modules/win_member"
+
+  source = "./modules/win_member"
+
+  # --- Basic domain info ---
   vm_name        = each.key
   domain_fqdn    = var.domain_fqdn
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
-  node           = var.node
+  node           = "vsphere"
   dc_ip          = module.ad_forest_dc.dc_ip
 
-  # --- Required module inputs ---
-  template_vm_id = var.base_template_id
-  target_storage = var.storage
-  join_username  = "Administrator"
-  join_password  = var.admin_password
-  ci_password    = var.admin_password
 
-  # --- Optional health/ready check ---
-  ready_check_url = "http://${module.ad_forest_dc.dc_ip}:8080"
+  # --- vSphere environment ---
+  vsphere_datacenter = var.vsphere_datacenter
+  vsphere_cluster    = var.vsphere_cluster
+  vsphere_network    = var.vsphere_network
+  vsphere_datastore  = var.vsphere_datastore
+  template_name      = var.template_name
+  folder             = var.folder
+  gateway            = var.gateway
 
-  depends_on = [module.ad_forest_dc]
+  # --- Hardware ---
+  cores        = var.cores
+  memory_mb    = var.memory_mb
+  disk_size_gb = var.disk_size_gb
+
+  # --- Domain join credentials ---
+  join_username = "Administrator"
+  join_password = var.admin_password
+  ci_password   = var.admin_password
+
+  # --- Ready check ---
+  ready_check_url = module.ad_forest_dc.ready_check_url
+
+  target_storage = var.vsphere_datastore
+  template_vm_id = 0
+
+
+  depends_on = [null_resource.wait_for_dc]
 }

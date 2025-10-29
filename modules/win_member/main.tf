@@ -1,77 +1,102 @@
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    proxmox = {
-      source  = "bpg/proxmox"
-      version = ">= 0.57.0"
-    }
-  }
+########################################
+# modules/win_member/main.tf
+# Deploy Windows Member Server on vSphere
+########################################
+
+# --- vSphere Environment Data Sources ---
+data "vsphere_datacenter" "dc" {
+  name = var.vsphere_datacenter
 }
 
-resource "proxmox_virtual_environment_file" "member_userdata" {
-  content_type = "snippets"
-  datastore_id = "local"
-  node_name    = var.node
-  source_raw {
-    data = templatefile("${path.module}/userdata-member.tpl", {
-      HOSTNAME      = var.vm_name
-      DOMAIN_FQDN   = var.domain_fqdn
-      NETBIOS_NAME  = var.netbios_name
-      READY_URL     = var.ready_check_url
-      ADMIN_PASSWORD = var.admin_password
-      JOIN_USERNAME = var.join_username
-      JOIN_PASSWORD = var.join_password
-      DC_IP = var.dc_ip
-    })
-    file_name = "userdata-${var.vm_name}.yaml"
-  }
+data "vsphere_datastore" "datastore" {
+  name          = var.vsphere_datastore
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-resource "proxmox_virtual_environment_vm" "member" {
-  name        = var.vm_name
-  node_name   = var.node
-  pool_id     = var.pool
-  description = "Domain member for ${var.domain_fqdn}"
+data "vsphere_network" "network" {
+  name          = var.vsphere_network
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
 
-  clone {
-    vm_id = var.template_vm_id
-    full  = true
-  }
+data "vsphere_resource_pool" "pool" {
+  name          = var.vsphere_cluster
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
 
-  cpu {
-    cores = var.cores
-    type  = "host"
+data "vsphere_virtual_machine" "template" {
+  name          = var.template_name
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+########################################
+# Create Windows Member Server VM
+########################################
+
+resource "vsphere_virtual_machine" "member" {
+  name             = var.vm_name
+  resource_pool_id = data.vsphere_resource_pool.pool.id
+  datastore_id     = data.vsphere_datastore.datastore.id
+  folder           = var.folder
+
+  num_cpus  = var.cores
+  memory    = var.memory_mb
+  guest_id  = "windows9Server64Guest"
+  scsi_type = "lsilogic-sas"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+    adapter_type = "vmxnet3"
   }
-  memory { dedicated = var.memory_mb }
 
   disk {
-    interface    = "scsi0"
-    size         = var.disk_size_gb
-    datastore_id = var.target_storage
-    discard      = "on"
+    label            = "${var.vm_name}.vmdk"
+    size             = var.disk_size_gb
+    eagerly_scrub    = false
+    thin_provisioned = true
   }
 
-  network_device {
-    bridge = var.bridge
-    model  = "virtio"
-  }
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
 
-  agent { enabled = true }
-  boot_order = ["scsi0"]
-
-  initialization {
-    datastore_id = var.target_storage
-    user_account {
-      username = var.ci_user
-      password = var.ci_password
-    }
-    ip_config {
-      ipv4 {
-        address = "dhcp"
+    customize {
+      windows_options {
+        computer_name  = var.vm_name
+        admin_password = var.ci_password
       }
+
+      network_interface {
+        ipv4_address = null
+        ipv4_netmask = null
+      }
+
+      # Set gateway at the top-level of the customize block
+      ipv4_gateway = var.gateway
     }
-    user_data_file_id = "${proxmox_virtual_environment_file.member_userdata.datastore_id}:snippets/${proxmox_virtual_environment_file.member_userdata.file_name}"
+  }
 
+  ########################################
+  # Cloudbase-Init (Userdata Injection)
+  ########################################
 
+  extra_config = {
+    "guestinfo.userdata" = base64encode(templatefile("${path.module}/userdata-member.tpl", {
+      HOSTNAME       = var.vm_name
+      DOMAIN_FQDN    = var.domain_fqdn
+      NETBIOS_NAME   = var.netbios_name
+      READY_URL      = var.ready_check_url
+      ADMIN_PASSWORD = var.admin_password
+      JOIN_USERNAME  = var.join_username
+      JOIN_PASSWORD  = var.join_password
+      DC_IP          = var.dc_ip
+    }))
+    "guestinfo.userdata.encoding" = "base64"
+  }
+
+  # Allow Terraform to destroy and recreate when template changes
+  lifecycle {
+    ignore_changes = [
+      clone[0].template_uuid
+    ]
   }
 }
+

@@ -1,3 +1,35 @@
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+}
+
+variable "vsphere_network" {
+  description = "vSphere network name"
+  type        = string
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore name"
+  type        = string
+}
+
+variable "template_name" {
+  description = "vSphere template name for cloning"
+  type        = string
+}
+
+variable "folder" {
+  description = "vSphere VM folder (optional)"
+  type        = string
+  default     = ""
+}
+
+
 variable "vm_name" {
   type = string
   default = "lab-ad-dc01"
