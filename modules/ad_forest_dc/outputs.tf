@@ -1,3 +1,5 @@
+
+
 # --- Domain FQDN ---
 output "domain_fqdn" {
   value = var.domain_fqdn
@@ -5,15 +7,14 @@ output "domain_fqdn" {
 
 # --- Domain Controller IP ---
 output "dc_ip" {
-  description = "Primary IPv4 address of the Domain Controller (from static configuration)"
-  # Strip /24 from "192.168.86.210/24"
-  value = split("/", var.dc_static_ip)[0]
+  description = "Primary IPv4 address of the Domain Controller"
+  value       = local.dc_ip
 }
 
 # --- HTTP readiness probe URL ---
 output "ready_check_url" {
   description = "HTTP readiness probe URL for the DC"
-  value       = "http://${split("/", var.dc_static_ip)[0]}:${var.ready_port}/"
+  value       = "http://${local.dc_ip}:${var.ready_port}${local.ready_check_path != "" ? local.ready_check_path : "/"}"
 }
 
 output "vm_id" {

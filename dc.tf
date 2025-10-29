@@ -31,7 +31,8 @@ module "ad_forest_dc" {
   template_vm_id = 0 # unused in vSphere mode, safe placeholder
 
   # --- Readiness Signal ---
-  ready_port = 8080
+  ready_port = var.ready_port
+  ready_path = var.ready_path
 }
 
 #######################################
