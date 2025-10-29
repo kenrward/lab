@@ -41,7 +41,7 @@ write_files:
 
 
       # --- Wait for DC to respond to LDAP ---
-      $maxTries = 30
+      $maxTries = 60
       for ($i = 1; $i -le $maxTries; $i++) {
           Write-Host "Checking DC LDAP availability... Attempt $i"
           if (Test-NetConnection -ComputerName $dcIp -Port 389 -InformationLevel Quiet) {

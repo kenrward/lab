@@ -116,3 +116,70 @@ variable "gateway" {
 }
 
 
+variable "vsphere_user" {
+  description = "vSphere username"
+  type        = string
+}
+
+variable "vsphere_password" {
+  description = "vSphere password"
+  type        = string
+  sensitive   = true
+}
+
+variable "vsphere_server" {
+  description = "vCenter server FQDN or IP"
+  type        = string
+}
+
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+}
+
+variable "vsphere_network" {
+  description = "vSphere network name"
+  type        = string
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore name"
+  type        = string
+}
+
+# --- vSphere template + folder ---
+variable "template_name" {
+  description = "Name of the Windows Server template to clone from"
+  type        = string
+}
+
+variable "folder" {
+  description = "Optional folder in vSphere to place the VM"
+  type        = string
+  default     = ""
+}
+
+# --- VM hardware defaults ---
+variable "cores" {
+  description = "Number of vCPUs for the DC"
+  type        = number
+  default     = 2
+}
+
+variable "memory_mb" {
+  description = "RAM size (MB) for the DC"
+  type        = number
+  default     = 4096
+}
+
+variable "disk_size_gb" {
+  description = "Primary disk size (GB) for the DC"
+  type        = number
+  default     = 60
+}
+

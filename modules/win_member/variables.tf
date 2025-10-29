@@ -79,4 +79,41 @@ variable "admin_password" {
   sensitive = true
 }
 
+# --- vSphere Environment ---
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+}
+
+variable "vsphere_network" {
+  description = "vSphere network name"
+  type        = string
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore name"
+  type        = string
+}
+
+variable "template_name" {
+  description = "vSphere template name to clone from"
+  type        = string
+}
+
+variable "folder" {
+  description = "vSphere folder to place VM in (optional)"
+  type        = string
+  default     = ""
+}
+variable "gateway" {
+  description = "Default IPv4 gateway for the member server"
+  type        = string
+}
+
+
 
