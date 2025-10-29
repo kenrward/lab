@@ -180,6 +180,6 @@ variable "memory_mb" {
 variable "disk_size_gb" {
   description = "Primary disk size (GB) for the DC"
   type        = number
-  default     = 60
+  default     = 150
 }
 

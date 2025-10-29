@@ -38,6 +38,7 @@ resource "vsphere_virtual_machine" "dc" {
   memory           = var.memory_mb
   guest_id         = "windows2019srvNext_64Guest"
   scsi_type        = "lsilogic-sas"
+  firmware         = "efi"
 
   network_interface {
     network_id   = data.vsphere_network.network.id
