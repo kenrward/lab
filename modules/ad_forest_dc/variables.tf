@@ -107,7 +107,7 @@ variable "ready_path" {
 
 variable "disk_size_gb" {
   type    = number
-  default = 100
+  default = 150
 }
 
 variable "dc_static_ip" {
