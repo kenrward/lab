@@ -20,6 +20,11 @@ data "vsphere_host" "esxi" {
 
 locals {
   resource_pool_id = data.vsphere_host.esxi.resource_pool_id
+  dc_ip = vsphere_virtual_machine.dc.default_ip_address != "" ? vsphere_virtual_machine.dc.default_ip_address : split("/", var.dc_static_ip)[0]
+
+  ready_check_path = var.ready_path != "" ? (
+    startswith(var.ready_path, "/") ? var.ready_path : "/${var.ready_path}"
+  ) : ""
 }
 
 
@@ -54,24 +59,20 @@ resource "vsphere_virtual_machine" "dc" {
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
+
     customize {
-  windows_options {
-    computer_name  = var.vm_name
-    admin_password = var.ci_password
-  }
+      windows_options {
+        computer_name  = var.vm_name
+        admin_password = var.ci_password
+        time_zone      = 35 # Eastern US
+      }
 
-  network_interface {
-    ipv4_address = split("/", var.dc_static_ip)[0]
-    ipv4_netmask = 24
-  }
+      # DHCP configuration
+      network_interface {}
 
-  ipv4_gateway = var.gateway
+      # No ipv4_gateway here — DHCP provides it automatically
+    }
 }
 
-  }
 }
 
-# --- Static DC IP local for reuse ---
-locals {
-  dc_ip = split("/", var.dc_static_ip)[0]
-}
