@@ -1,77 +1,72 @@
 #cloud-config
 hostname: ${hostname}
+
 write_files:
-  # --- Post-promotion script: runs after reboot as a scheduled task ---
+  # --- Post-promotion script: runs at startup after AD DS install ---
   - path: C:\Windows\Temp\post_promo.ps1
     permissions: '0644'
     content: |
+      [CmdletBinding()]
       param()
-      $domainFqdn = "${DOMAIN_FQDN}"
-      $adminPlain = "${ADMIN_PASSWORD}"
+
       $LogFile = "C:\Windows\Temp\ADDSPostPromo.log"
       Start-Transcript -Path $LogFile -Append
 
-      # Wait for NTDS (domain service) to be up before proceeding
-      $max = 60
-      for ($i = 0; $i -lt $max; $i++) {
+      $readyPort = ${READY_PORT}
+      $readyPath = "${READY_PATH}"
+      $maxTries  = 120
+
+      Write-Host "Waiting for NTDS service to start..."
+      for ($i = 0; $i -lt $maxTries; $i++) {
           try {
-              if ((Get-Service NTDS -ErrorAction Stop).Status -eq 'Running') { break }
+              if ((Get-Service NTDS -ErrorAction Stop).Status -eq 'Running') {
+                  Write-Host "NTDS is running"
+                  break
+              }
           } catch {}
           Start-Sleep -Seconds 5
       }
 
-      # Ensure domain admin password
-      net user Administrator "$adminPlain" /domain
+      # Confirm DNS is responding
+      try {
+          Resolve-DnsName localhost | Out-Null
+          Write-Host "DNS is responding"
+      } catch {
+          Write-Warning "DNS check failed, continuing anyway..."
+      }
 
       # Enable RDP
       Set-ItemProperty 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name fDenyTSConnections -Value 0
       Enable-NetFirewallRule -DisplayGroup 'Remote Desktop' | Out-Null
 
-      # Optional readiness port
-      if (${READY_PORT} -gt 0 -and "${READY_PATH}") {
-          try {
-              New-Item -ItemType Directory -Path "${READY_PATH}" -Force | Out-Null
-              netsh advfirewall firewall add rule name="ReadyProbe" dir=in action=allow protocol=TCP localport=${READY_PORT} | Out-Null
-          # --- Start lightweight readiness HTTP listener ---
+      # --- Readiness listener ---
+      try {
+          New-Item -ItemType Directory -Path $readyPath -Force | Out-Null
+          netsh advfirewall firewall add rule name="ReadyProbe" dir=in action=allow protocol=TCP localport=$readyPort | Out-Null
 
-          } catch {}
+          $prefix = "http://+:$readyPort/"
+          Write-Host "Starting readiness listener on $prefix"
+          $listener = New-Object System.Net.HttpListener
+          $listener.Prefixes.Add($prefix)
+          $listener.Start()
+
+          while ($listener.IsListening) {
+              $context  = $listener.GetContext()
+              $response = $context.Response
+              $msg      = [System.Text.Encoding]::UTF8.GetBytes("READY")
+              $response.OutputStream.Write($msg, 0, $msg.Length)
+              $response.Close()
+          }
+      } catch {
+          Write-Warning "Failed to start readiness listener: $_"
       }
-      # --- Start lightweight readiness HTTP listener ---
-        try {
-            $prefix = "http://+:${READY_PORT}/"
-            Write-Host "Starting readiness listener on $prefix"
-            $listener = New-Object System.Net.HttpListener
-            $listener.Prefixes.Add($prefix)
-            $listener.Start()
-            while ($listener.IsListening) {
-                $context = $listener.GetContext()
-                $response = $context.Response
-                $bytes = [System.Text.Encoding]::UTF8.GetBytes("READY")
-                $response.OutputStream.Write($bytes, 0, $bytes.Length)
-                $response.OutputStream.Close()
-            }
-        } catch {
-            Write-Warning "Failed to start readiness listener: $_"
-        }
 
-      # Self-cleanup
-        schtasks /Delete /TN "ZN-PostPromo" /F
+      Stop-Transcript
 
-        # Start readiness listener
-        $listener = [System.Net.HttpListener]::new()
-        $listener.Prefixes.Add("http://+:${READY_PORT}/")
-        $listener.Start()
-        Write-Host "Serving READY page on port ${READY_PORT}"
-        while ($listener.IsListening) {
-            $context = $listener.GetContext()
-            $response = $context.Response
-            $body = [System.Text.Encoding]::UTF8.GetBytes("READY")
-            $response.OutputStream.Write($body, 0, $body.Length)
-            $response.Close()
-        }
-        Stop-Transcript
+      # Remove scheduled task after success
+      schtasks /Delete /TN "ZN-PostPromo" /F
 
-  # --- Promotion script: executed by Cloudbase-Init ---
+  # --- Promotion script: executed once by Cloudbase-Init ---
   - path: C:\Windows\Temp\promote_dc.ps1
     permissions: '0644'
     content: |
@@ -85,20 +80,28 @@ write_files:
 
       $LogFile = "C:\Windows\Temp\ADDSInstall.log"
       Start-Transcript -Path $LogFile -Append
+      $flagFile = "C:\Windows\Temp\PromotionComplete.txt"
+      if (Test-Path $flagFile) {
+          Write-Host "DC promotion already completed. Skipping..."
+          exit 0
+      }
 
-      # Make sure Administrator account is active
+      Write-Host "Promoting to new forest $domainFqdn ($netbios)..."
+
+      # Ensure Administrator account active and password set
       net user Administrator "$adminPlain" /active:yes
       wmic useraccount where "name='Administrator'" set PasswordExpires=False | Out-Null
 
-      # Schedule post-promotion task
+      # Schedule post-promotion task to start at next boot
       $action    = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -File C:\Windows\Temp\post_promo.ps1"
       $trigger   = New-ScheduledTaskTrigger -AtStartup
       $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
       Register-ScheduledTask -TaskName "ZN-PostPromo" -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
 
-      # Promote to forest root domain
+      # Install AD DS
       Install-WindowsFeature AD-Domain-Services -IncludeManagementTools
-      $forestParams = @{
+
+      $params = @{
           DomainName                    = $domainFqdn
           DomainNetbiosName             = $netbios
           SafeModeAdministratorPassword = (ConvertTo-SecureString $dsrmPlain -AsPlainText -Force)
@@ -107,12 +110,16 @@ write_files:
           Force                         = $true
           NoRebootOnCompletion          = $true
       }
-      Install-ADDSForest @forestParams | Out-Null
-      Stop-Transcript
 
+      Install-ADDSForest @params | Out-Null
+      New-Item -ItemType File -Path $flagFile -Force | Out-Null
+      Restart-Computer -Force
+      Write-Host "AD DS promotion initiated, rebooting..."
+      Stop-Transcript
       Restart-Computer -Force
 
-# --- Run script as 64-bit PowerShell in background ---
 runcmd:
-  - [ powershell.exe, -Command, "Restart-NetAdapter -Name 'Ethernet'; Start-Sleep 5; ipconfig /renew" ]
+  - [ powershell.exe, -NoLogo, -NoProfile, -ExecutionPolicy, Bypass, -Command, "Restart-NetAdapter -Name 'Ethernet'; Start-Sleep 5; ipconfig /renew" ]
   - [ powershell.exe, -NoLogo, -NoProfile, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\promote_dc.ps1" ]
+
+

@@ -106,7 +106,7 @@ variable "vms" {
 variable "dc_static_ip" {
   description = "Static IPv4 address and prefix for the domain controller (CIDR format)"
   type        = string
-  default     = "192.168.86.210/24"
+  default    = "0.0.0.0/24"
 }
 
 variable "gateway" {

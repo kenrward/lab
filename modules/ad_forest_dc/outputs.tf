@@ -5,18 +5,19 @@ output "domain_fqdn" {
   value = var.domain_fqdn
 }
 
-# --- Domain Controller IP ---
+# --- Dynamically detect the DC's IP via VMware Tools ---
 output "dc_ip" {
-  description = "DC IP (not available until VMware Tools reports it)"
-  value       = coalesce(local.dc_ip, "DHCP / unknown at apply time")
+  description = "DC IP after VMware Tools reports it"
+  value       = try(data.vsphere_virtual_machine.dc_refreshed.default_ip_address, null)
 }
 
 output "ready_check_url" {
-  description = "HTTP readiness probe URL for the DC"
-  value       = local.dc_ip != null ? "http://${local.dc_ip}:${var.ready_port}${var.ready_path != "" ? var.ready_path : "/"}" : "Unavailable (DC uses DHCP)"
+  value = "Computed dynamically during wait"
 }
 
+
+# --- Optional for debugging ---
 output "vm_id" {
-  description = "VM ID of the Domain Controller in vSphere"
+  description = "vSphere VM ID of the DC"
   value       = vsphere_virtual_machine.dc.id
 }

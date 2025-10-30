@@ -41,7 +41,7 @@ resource "vsphere_virtual_machine" "dc" {
   folder           = var.folder
   num_cpus         = var.cores
   memory           = var.memory_mb
-  guest_id         = "windows2019srvNext_64Guest"
+  guest_id         = "windows2019srv_64Guest"
   scsi_type        = "lsilogic-sas"
   firmware         = "efi"
 
@@ -86,3 +86,11 @@ resource "vsphere_virtual_machine" "dc" {
   tools_upgrade_policy = "manual"
   wait_for_guest_net_timeout = 0
 }
+
+# Re-query the VM after creation to get updated guest info (IP from VMware Tools)
+data "vsphere_virtual_machine" "dc_refreshed" {
+  depends_on = [vsphere_virtual_machine.dc]
+  name          = vsphere_virtual_machine.dc.name
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+

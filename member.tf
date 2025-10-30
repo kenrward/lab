@@ -5,6 +5,8 @@ module "win_member" {
 
   source = "./modules/win_member"
 
+
+
   # --- Basic domain info ---
   vm_name        = each.key
   domain_fqdn    = var.domain_fqdn

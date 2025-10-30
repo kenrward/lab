@@ -36,37 +36,52 @@ module "ad_forest_dc" {
   ready_path = var.ready_path
 }
 
-#######################################
-# Wait for DC to signal readiness
-#######################################
 
+# --- Wait until the DC responds on its readiness port ---
 resource "null_resource" "wait_for_dc" {
   depends_on = [module.ad_forest_dc]
 
   provisioner "local-exec" {
-    command = <<-EOT
-      echo "⏳ Waiting for Domain Controller to signal readiness..."
-      sleep 15
+    environment = {
+      READY_PORT = var.ready_port
+      DC_IP      = module.ad_forest_dc.dc_ip != null ? module.ad_forest_dc.dc_ip : ""
+    }
 
-      READY_URL="${module.ad_forest_dc.ready_check_url}"
-      # sanitize placeholder
-      if echo "$READY_URL" | grep -q "Unavailable"; then
-        echo "⚠️  DC uses DHCP; skipping readiness HTTP probe (no static IP known)."
-        exit 0
+    interpreter = ["bash", "-c"]
+    command = <<-EOT
+      echo "⏳ Waiting for DC's IP from vSphere..."
+      ip="$DC_IP"
+
+      # Wait up to 10 minutes for the DC IP if not reported yet
+      if [ -z "$ip" ] || [ "$ip" = "null" ]; then
+        echo "Waiting for VMware Tools to report IP..."
+        for i in {1..60}; do
+          ip=$(terraform output -raw dc_ip 2>/dev/null || echo "")
+          [ -n "$ip" ] && [ "$ip" != "null" ] && break
+          sleep 10
+        done
       fi
 
+      if [ -z "$ip" ] || [ "$ip" = "null" ]; then
+        echo "❌ Failed to detect DC IP after 10 min"
+        exit 1
+      fi
+
+      echo "✅ Detected DC IP: $ip"
+      echo "Probing readiness at http://$ip:$READY_PORT/"
+
       for i in {1..90}; do
-        if curl -sf "$READY_URL" | grep -q READY; then
-          echo "✅ Domain Controller is READY (responded on $READY_URL)"
+        if curl -sf "http://$ip:$READY_PORT/" | grep -q READY; then
+          echo "✅ DC is READY (responded on $ip)"
           exit 0
         fi
-        echo "⏱️  DC not ready yet... retrying ($i/90)"
+        echo "⏱️ Retry ($i/90)..."
         sleep 30
       done
-      echo "❌ Timed out waiting for Domain Controller readiness after 45 minutes"
+
+      echo "❌ Timed out waiting for Domain Controller readiness"
       exit 1
     EOT
-    interpreter = ["bash", "-c"]
   }
 }
 
