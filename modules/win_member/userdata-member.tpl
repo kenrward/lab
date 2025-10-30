@@ -9,7 +9,7 @@ write_files:
       [CmdletBinding()]
       param()
       $domainFqdn = "${DOMAIN_FQDN}"
-      $dcIp       = "${DC_IP}"
+      $dcIp        = "${DC_IP != "" ? DC_IP : "<unset>"}"
       $adminUser   = "${JOIN_USERNAME}"
       $adminPass   = "${JOIN_PASSWORD}" | ConvertTo-SecureString -AsPlainText -Force
       $credential = New-Object System.Management.Automation.PSCredential($adminPass, $adminPass)
