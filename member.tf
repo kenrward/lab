@@ -12,7 +12,6 @@ module "win_member" {
   domain_fqdn    = var.domain_fqdn
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
-  node           = "vsphere"
   dc_ip          = module.ad_forest_dc.dc_ip
 
 
@@ -38,10 +37,6 @@ module "win_member" {
 
   # --- Ready check ---
   ready_check_url = module.ad_forest_dc.ready_check_url
-
-  target_storage = var.vsphere_datastore
-  template_vm_id = 0
-
 
   depends_on = [null_resource.wait_for_dc]
 }

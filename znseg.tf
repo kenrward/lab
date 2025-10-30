@@ -11,5 +11,6 @@ module "zn_seg_server" {
   join_password       = var.admin_password
   admin_password      = var.admin_password
   gateway             = "192.168.11.1"
+  dc_ip               = module.ad_forest_dc.dc_ip
   install_script      = "C:\\Installers\\SegSetup.exe /quiet /norestart"
 }
