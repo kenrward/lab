@@ -18,6 +18,7 @@ module "ad_forest_dc" {
   vsphere_network    = var.vsphere_network
   vsphere_datastore  = var.vsphere_datastore
   template_name      = var.template_name
+  vsphere_host = "192.168.1.51"
   folder             = var.folder
 
   # --- VM Hardware ---
@@ -43,12 +44,20 @@ resource "null_resource" "wait_for_dc" {
   depends_on = [module.ad_forest_dc]
 
   provisioner "local-exec" {
-    command     = <<EOT
-      echo "⏳ Waiting for Domain Controller (${module.ad_forest_dc.dc_ip}) to signal readiness..."
+    command = <<-EOT
+      echo "⏳ Waiting for Domain Controller to signal readiness..."
       sleep 15
+
+      READY_URL="${module.ad_forest_dc.ready_check_url}"
+      # sanitize placeholder
+      if echo "$READY_URL" | grep -q "Unavailable"; then
+        echo "⚠️  DC uses DHCP; skipping readiness HTTP probe (no static IP known)."
+        exit 0
+      fi
+
       for i in {1..90}; do
-        if curl -sf ${module.ad_forest_dc.ready_check_url} | grep -q READY; then
-          echo "✅ Domain Controller is READY (responded on ${module.ad_forest_dc.ready_check_url})"
+        if curl -sf "$READY_URL" | grep -q READY; then
+          echo "✅ Domain Controller is READY (responded on $READY_URL)"
           exit 0
         fi
         echo "⏱️  DC not ready yet... retrying ($i/90)"
@@ -59,9 +68,5 @@ resource "null_resource" "wait_for_dc" {
     EOT
     interpreter = ["bash", "-c"]
   }
-
-  triggers = {
-    dc_ip           = module.ad_forest_dc.dc_ip
-    ready_check_url = module.ad_forest_dc.ready_check_url
-  }
 }
+

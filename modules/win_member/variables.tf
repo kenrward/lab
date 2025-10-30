@@ -115,5 +115,9 @@ variable "gateway" {
   type        = string
 }
 
+variable "vsphere_host" {
+  description = "Name or IP of the ESXi host where the VM will be created"
+  type        = string
+}
 
 

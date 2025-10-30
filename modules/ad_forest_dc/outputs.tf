@@ -7,14 +7,13 @@ output "domain_fqdn" {
 
 # --- Domain Controller IP ---
 output "dc_ip" {
-  description = "Primary IPv4 address of the Domain Controller"
-  value       = local.dc_ip
+  description = "DC IP (not available until VMware Tools reports it)"
+  value       = coalesce(local.dc_ip, "DHCP / unknown at apply time")
 }
 
-# --- HTTP readiness probe URL ---
 output "ready_check_url" {
   description = "HTTP readiness probe URL for the DC"
-  value       = "http://${local.dc_ip}:${var.ready_port}${local.ready_check_path != "" ? local.ready_check_path : "/"}"
+  value       = local.dc_ip != null ? "http://${local.dc_ip}:${var.ready_port}${var.ready_path != "" ? var.ready_path : "/"}" : "Unavailable (DC uses DHCP)"
 }
 
 output "vm_id" {

@@ -18,14 +18,18 @@ data "vsphere_network" "network" {
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
-data "vsphere_resource_pool" "pool" {
-  name          = var.vsphere_cluster
-  datacenter_id = data.vsphere_datacenter.dc.id
-}
-
 data "vsphere_virtual_machine" "template" {
   name          = var.template_name
   datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_host" "esxi" {
+  name          = var.vsphere_host
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+locals {
+  resource_pool_id = data.vsphere_host.esxi.resource_pool_id
 }
 
 ########################################
@@ -34,7 +38,7 @@ data "vsphere_virtual_machine" "template" {
 
 resource "vsphere_virtual_machine" "member" {
   name             = var.vm_name
-  resource_pool_id = data.vsphere_resource_pool.pool.id
+  resource_pool_id = local.resource_pool_id 
   datastore_id     = data.vsphere_datastore.datastore.id
   folder           = var.folder
 

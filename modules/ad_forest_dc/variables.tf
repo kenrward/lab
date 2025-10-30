@@ -122,3 +122,7 @@ variable "gateway" {
   default     = "192.168.86.1"
 }
 
+variable "vsphere_host" {
+  description = "Name or IP of the ESXi host where the VM will be created"
+  type        = string
+}

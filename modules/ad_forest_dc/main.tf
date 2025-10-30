@@ -14,7 +14,7 @@ data "vsphere_network" "network" {
 }
 
 data "vsphere_host" "esxi" {
-  name          = "192.168.1.51"
+  name          = var.vsphere_host
   datacenter_id = data.vsphere_datacenter.dc.id
 }
 
@@ -59,20 +59,30 @@ resource "vsphere_virtual_machine" "dc" {
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
+  }
 
-    customize {
-      windows_options {
-        computer_name  = var.vm_name
-        admin_password = var.ci_password
-        time_zone      = 35 # Eastern US
-      }
+  # --- Cloudbase-Init metadata and user-data ---
+  extra_config = {
+    "guestinfo.metadata"           = base64encode(templatefile("${path.module}/metadata.yaml", {
+      hostname = var.vm_name
+    }))
+    "guestinfo.metadata.encoding"  = "base64"
 
-      # DHCP configuration
-      network_interface {}
+    "guestinfo.userdata"           = base64encode(templatefile("${path.module}/userdata-dc.tpl", {
+      HOSTNAME       = var.vm_name
+      DOMAIN_FQDN    = var.domain_fqdn
+      NETBIOS_NAME   = var.netbios_name
+      DSRM_PASSWORD  = var.dsrm_password
+      ADMIN_PASSWORD = var.admin_password
+      READY_PORT     = var.ready_port
+      READY_PATH     = var.ready_path
+      hostname       = var.vm_name         # 👈 add this line
+    }))
+    "guestinfo.userdata.encoding"  = "base64"
+  }
 
-      # No ipv4_gateway here — DHCP provides it automatically
-    }
+
+  # Enable VMware Tools interaction (needed for guestinfo)
+  tools_upgrade_policy = "manual"
+  wait_for_guest_net_timeout = 0
 }
-
-}
-
