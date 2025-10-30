@@ -18,7 +18,7 @@ module "ad_forest_dc" {
   vsphere_network    = var.vsphere_network
   vsphere_datastore  = var.vsphere_datastore
   template_name      = var.template_name
-  vsphere_host = "192.168.1.51"
+  vsphere_host       = "192.168.1.51"
   folder             = var.folder
 
   # --- VM Hardware ---

@@ -21,7 +21,7 @@ module "win_member" {
   vsphere_cluster    = var.vsphere_cluster
   vsphere_network    = var.vsphere_network
   vsphere_datastore  = var.vsphere_datastore
-  vsphere_host = "192.168.1.51"
+  vsphere_host       = "192.168.1.51"
   template_name      = var.template_name
   folder             = var.folder
   gateway            = var.gateway

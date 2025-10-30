@@ -1,0 +1,15 @@
+module "zn_seg_server" {
+  source              = "./modules/zn_seg_server"
+  vm_name             = "seg01"
+  vsphere_datacenter  = var.vsphere_datacenter
+  vsphere_datastore   = var.vsphere_datastore
+  vsphere_network     = var.vsphere_network
+  vsphere_host        = "192.168.1.51"
+  template_name       = var.template_name
+  domain_fqdn         = "lab.local"
+  join_username       = "LAB\\Administrator"
+  join_password       = var.admin_password
+  admin_password      = var.admin_password
+  gateway             = "192.168.11.1"
+  install_script      = "C:\\Installers\\SegSetup.exe /quiet /norestart"
+}
