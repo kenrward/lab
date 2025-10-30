@@ -26,7 +26,7 @@ data "vsphere_virtual_machine" "template" {
 
 
 locals {
-  resource_pool_id = data.vsphere_host.esxi.resource_pool_id
+  resource_pool_id = coalesce(var.resource_pool_id, data.vsphere_host.esxi.resource_pool_id)
 }
 # --- Seg Server VM ---
 resource "vsphere_virtual_machine" "seg" {
@@ -35,7 +35,7 @@ resource "vsphere_virtual_machine" "seg" {
   datastore_id     = data.vsphere_datastore.datastore.id
   num_cpus         = var.cores
   memory           = var.memory_mb
-  guest_id         = "windows2019srvNext_64Guest"
+  guest_id         = "windows2019srv_64Guest"
   firmware         = "efi"
   scsi_type        = "lsilogic-sas"
 
@@ -71,6 +71,7 @@ resource "vsphere_virtual_machine" "seg" {
       JOIN_USERNAME   = var.join_username
       JOIN_PASSWORD   = var.join_password
       ADMIN_PASSWORD  = var.admin_password
+      DC_IP           = var.dc_ip
       INSTALL_SCRIPT  = var.install_script
     }))
     "guestinfo.metadata.encoding" = "base64"

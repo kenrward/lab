@@ -8,7 +8,6 @@ module "ad_forest_dc" {
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
   dsrm_password  = var.dsrm_password
-  ci_password    = var.admin_password
   dc_static_ip   = var.dc_static_ip
   gateway        = var.gateway
 
@@ -26,10 +25,6 @@ module "ad_forest_dc" {
   memory_mb    = var.memory_mb
   disk_size_gb = var.disk_size_gb
 
-  # --- Misc legacy compatibility ---
-  node           = "vsphere" # placeholder (required by module interface)
-  target_storage = var.vsphere_datastore
-  template_vm_id = 0 # unused in vSphere mode, safe placeholder
 
   # --- Readiness Signal ---
   ready_port = var.ready_port

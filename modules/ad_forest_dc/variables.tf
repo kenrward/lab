@@ -31,21 +31,8 @@ variable "folder" {
 
 
 variable "vm_name" {
-  type = string
-  default = "lab-ad-dc01"
-}
-
-variable "node" {
-  type = string
-}
-
-variable "pool" {
-  type    = string
-  default = null
-}
-
-variable "target_storage" {
-  type = string
+  type        = string
+  default     = "lab-ad-dc01"
 }
 
 variable "cores" {
@@ -56,25 +43,6 @@ variable "cores" {
 variable "memory_mb" {
   type    = number
   default = 8192
-}
-
-variable "bridge" {
-  type    = string
-  default = "vmbr0"
-}
-
-variable "ci_user" {
-  type    = string
-  default = "Administrator"
-}
-
-variable "ci_password" {
-  type = string
-}
-
-
-variable "template_vm_id" {
-  type = number
 }
 
 variable "domain_fqdn" {
