@@ -10,7 +10,6 @@ output "dc_ip" {
   description = "DC IP after VMware Tools reports it"
   value       = try(data.vsphere_virtual_machine.dc_refreshed.default_ip_address, null)
 }
-
 output "ready_check_url" {
   value = "Computed dynamically during wait"
 }
@@ -20,4 +19,8 @@ output "ready_check_url" {
 output "vm_id" {
   description = "vSphere VM ID of the DC"
   value       = vsphere_virtual_machine.dc.id
+}
+output "vm_name" {
+  description = "VM name of the Domain Controller"
+  value       = var.vm_name
 }
