@@ -1,4 +1,3 @@
-
 module "ad_forest_dc" {
   source = "./modules/ad_forest_dc"
 
@@ -25,48 +24,40 @@ module "ad_forest_dc" {
   memory_mb    = var.memory_mb
   disk_size_gb = var.disk_size_gb
 
-
   # --- Readiness Signal ---
   ready_port = var.ready_port
   ready_path = var.ready_path
+
 }
 
-
-# --- Wait until the DC responds on its readiness port ---
+# --- Wait until the DC has a valid IP and responds on readiness port ---
 resource "null_resource" "wait_for_dc" {
   depends_on = [module.ad_forest_dc]
 
   provisioner "local-exec" {
-    environment = {
-      READY_PORT = var.ready_port
-      DC_IP      = module.ad_forest_dc.dc_ip != null ? module.ad_forest_dc.dc_ip : ""
-    }
-
-    interpreter = ["bash", "-c"]
     command = <<-EOT
-      echo "⏳ Waiting for DC's IP from vSphere..."
-      ip="$DC_IP"
+      echo "⏳ Waiting for DC IP for $VM_NAME..."
+      echo "DEBUG: GOVC_URL=$GOVC_URL"
 
-      # Wait up to 10 minutes for the DC IP if not reported yet
-      if [ -z "$ip" ] || [ "$ip" = "null" ]; then
-        echo "Waiting for VMware Tools to report IP..."
-        for i in {1..60}; do
-          ip=$(terraform output -raw dc_ip 2>/dev/null || echo "")
-          [ -n "$ip" ] && [ "$ip" != "null" ] && break
-          sleep 10
-        done
-      fi
+      # Poll vSphere for a valid IP
+      for i in {1..60}; do
+        ip=$(govc vm.info -json "$VM_NAME" | jq -r '.virtualMachines[].guest.ipAddress // .virtualMachines[].summary.guest.ipAddress // empty')
+        if [ -n "$ip" ] && [ "$ip" != "0.0.0.0" ] && [[ ! "$ip" =~ ^169\\.254\\. ]]; then
+          echo "✅ Found DC IP: $ip"
+          break
+        fi
+        echo "⏱️ IP not ready (currently: $ip), retrying ($i/60)..."
+        sleep 10
+      done
 
-      if [ -z "$ip" ] || [ "$ip" = "null" ]; then
-        echo "❌ Failed to detect DC IP after 10 min"
+      if [ -z "$ip" ] || [ "$ip" = "0.0.0.0" ] || [[ "$ip" =~ ^169\\.254\\. ]]; then
+        echo "❌ Timed out waiting for DC IP."
         exit 1
       fi
 
-      echo "✅ Detected DC IP: $ip"
-      echo "Probing readiness at http://$ip:$READY_PORT/"
-
+      echo "🌐 Detected DC IP: $ip — probing readiness at http://$ip:$READY_PORT$READY_PATH"
       for i in {1..90}; do
-        if curl -sf "http://$ip:$READY_PORT/" | grep -q READY; then
+        if curl -sf "http://$ip:$READY_PORT$READY_PATH" | grep -q READY; then
           echo "✅ DC is READY (responded on $ip)"
           exit 0
         fi
@@ -74,9 +65,18 @@ resource "null_resource" "wait_for_dc" {
         sleep 30
       done
 
-      echo "❌ Timed out waiting for Domain Controller readiness"
+      echo "❌ Timed out waiting for Domain Controller readiness."
       exit 1
     EOT
+
+    environment = {
+      GOVC_URL      = var.vsphere_server
+      GOVC_USERNAME = var.vsphere_user
+      GOVC_PASSWORD = var.vsphere_password
+      GOVC_INSECURE = "true"
+      VM_NAME       = module.ad_forest_dc.vm_name
+      READY_PORT    = var.ready_port
+      READY_PATH    = var.ready_path
+    }
   }
 }
-

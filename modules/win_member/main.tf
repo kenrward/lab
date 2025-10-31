@@ -66,7 +66,7 @@ resource "vsphere_virtual_machine" "member" {
     customize {
       windows_options {
         computer_name  = var.vm_name
-        admin_password = var.ci_password
+        admin_password = var.admin_password
       }
 
       network_interface {

@@ -20,7 +20,7 @@ data "vsphere_host" "esxi" {
 
 locals {
   resource_pool_id = data.vsphere_host.esxi.resource_pool_id
-  dc_ip = vsphere_virtual_machine.dc.default_ip_address != "" ? vsphere_virtual_machine.dc.default_ip_address : split("/", var.dc_static_ip)[0]
+  #dc_ip = vsphere_virtual_machine.dc.default_ip_address != "" ? vsphere_virtual_machine.dc.default_ip_address : split("/", var.dc_static_ip)[0]
 
   ready_check_path = var.ready_path != "" ? (
     startswith(var.ready_path, "/") ? var.ready_path : "/${var.ready_path}"
@@ -84,13 +84,11 @@ resource "vsphere_virtual_machine" "dc" {
 
   # Enable VMware Tools interaction (needed for guestinfo)
   tools_upgrade_policy = "manual"
-  wait_for_guest_net_timeout = 0
+  wait_for_guest_net_timeout = 10
 }
 
-# Re-query the VM after creation to get updated guest info (IP from VMware Tools)
 data "vsphere_virtual_machine" "dc_refreshed" {
   depends_on = [vsphere_virtual_machine.dc]
   name          = vsphere_virtual_machine.dc.name
   datacenter_id = data.vsphere_datacenter.dc.id
 }
-

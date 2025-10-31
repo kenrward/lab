@@ -33,7 +33,6 @@ module "win_member" {
   # --- Domain join credentials ---
   join_username = "Administrator"
   join_password = var.admin_password
-  ci_password   = var.admin_password
 
   # --- Ready check ---
   ready_check_url = module.ad_forest_dc.ready_check_url
