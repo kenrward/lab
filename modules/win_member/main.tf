@@ -71,7 +71,9 @@ resource "vsphere_virtual_machine" "member" {
       HOSTNAME       = var.vm_name
       DOMAIN_FQDN    = var.domain_fqdn
       NETBIOS_NAME   = var.netbios_name
-      READY_URL      = var.ready_check_url
+     READY_URL      = var.ready_check_url
+      READY_PORT     = var.ready_check_port
+      READY_PATH     = var.ready_check_path
       ADMIN_PASSWORD = var.admin_password
       JOIN_USERNAME  = var.join_username
       JOIN_PASSWORD  = var.join_password

@@ -55,9 +55,10 @@ resource "null_resource" "wait_for_dc" {
         exit 1
       fi
 
-      echo "🌐 Detected DC IP: $ip — probing readiness at http://$ip:$READY_PORT$READY_PATH"
+      READY_URL="http://$ip:$READY_PORT$READY_PATH"
+      echo "🌐 Detected DC IP: $ip — probing readiness at $READY_URL"
       for i in {1..90}; do
-        if curl -sf "http://$ip:$READY_PORT$READY_PATH" | grep -q READY; then
+        if curl -sf "$READY_URL" | grep -q READY; then
           echo "✅ DC is READY (responded on $ip)"
           exit 0
         fi
@@ -76,7 +77,7 @@ resource "null_resource" "wait_for_dc" {
       GOVC_INSECURE = "true"
       VM_NAME       = module.ad_forest_dc.vm_name
       READY_PORT    = var.ready_port
-      READY_PATH    = var.ready_path
+      READY_PATH    = module.ad_forest_dc.ready_check_path
     }
   }
 }
