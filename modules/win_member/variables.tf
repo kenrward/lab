@@ -24,6 +24,14 @@ variable "ready_check_url" {
   type = string
 }
 
+variable "ready_check_port" {
+  type = number
+}
+
+variable "ready_check_path" {
+  type = string
+}
+
 variable "join_username" {
   type = string
 }

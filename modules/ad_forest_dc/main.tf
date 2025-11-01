@@ -20,11 +20,15 @@ data "vsphere_host" "esxi" {
 
 locals {
   resource_pool_id = data.vsphere_host.esxi.resource_pool_id
-  #dc_ip = vsphere_virtual_machine.dc.default_ip_address != "" ? vsphere_virtual_machine.dc.default_ip_address : split("/", var.dc_static_ip)[0]
-
-  ready_check_path = var.ready_path != "" ? (
+  ready_check_path = trimspace(var.ready_path) != "" ? (
     startswith(var.ready_path, "/") ? var.ready_path : "/${var.ready_path}"
   ) : ""
+  dc_ip_from_vsphere = try(data.vsphere_virtual_machine.dc_refreshed.default_ip_address, "")
+  ready_check_url    = (
+    local.dc_ip_from_vsphere != "" && var.ready_port > 0
+    ? format("http://%s:%d%s", local.dc_ip_from_vsphere, var.ready_port, local.ready_check_path)
+    : ""
+  )
 }
 
 

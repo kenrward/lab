@@ -11,7 +11,13 @@ output "dc_ip" {
   value       = try(data.vsphere_virtual_machine.dc_refreshed.default_ip_address, null)
 }
 output "ready_check_url" {
-  value = "Computed dynamically during wait"
+  description = "URL polled by dependent modules/resources to confirm DC readiness"
+  value       = local.ready_check_url
+}
+
+output "ready_check_path" {
+  description = "Normalized HTTP path segment used for readiness probes"
+  value       = local.ready_check_path
 }
 
 

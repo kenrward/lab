@@ -14,6 +14,7 @@ write_files:
 
       $readyPort = ${READY_PORT}
       $readyPath = "${READY_PATH}"
+      $domainFqdn = "${DOMAIN_FQDN}"
       $maxTries  = 120
 
       Write-Host "Waiting for NTDS service to start..."
@@ -25,6 +26,53 @@ write_files:
               }
           } catch {}
           Start-Sleep -Seconds 5
+      }
+
+      Write-Host "Importing ActiveDirectory module if available..."
+      try {
+          Import-Module ActiveDirectory -ErrorAction Stop
+          Write-Host "ActiveDirectory module imported."
+      } catch {
+          Write-Warning "Failed to import ActiveDirectory module: $_"
+      }
+
+      Write-Host "Waiting for DNS resolution of $domainFqdn..."
+      $dnsReady = $false
+      for ($i = 0; $i -lt $maxTries; $i++) {
+          try {
+              $null = Resolve-DnsName -Name $domainFqdn -ErrorAction Stop
+              $dnsReady = $true
+              Write-Host "DNS name $domainFqdn resolved successfully."
+              break
+          } catch {
+              Write-Host "DNS record not ready yet: $_"
+          }
+          Start-Sleep -Seconds 5
+      }
+      if (-not $dnsReady) {
+          Write-Warning "DNS never resolved for $domainFqdn after waiting $maxTries attempts."
+      }
+
+      $adReady = $false
+      if (Get-Module -Name ActiveDirectory) {
+          Write-Host "Validating Active Directory service availability for $domainFqdn..."
+          for ($i = 0; $i -lt $maxTries; $i++) {
+              try {
+                  $domain = Get-ADDomain -Identity $domainFqdn -ErrorAction Stop
+                  $dcInfo = Get-ADDomainController -DomainName $domainFqdn -Discover -ErrorAction Stop
+                  if ($domain -and $dcInfo) {
+                      Write-Host "Discovered domain controller: $($dcInfo.HostName)"
+                      $adReady = $true
+                      break
+                  }
+              } catch {
+                  Write-Host "Domain services not ready yet: $_"
+              }
+              Start-Sleep -Seconds 5
+          }
+      }
+      if (-not $adReady) {
+          Write-Warning "Active Directory discovery checks failed to complete within timeout."
       }
 
       # Confirm DNS is responding
