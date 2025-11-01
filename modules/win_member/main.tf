@@ -1,8 +1,3 @@
-########################################
-# modules/win_member/main.tf
-# Deploy Windows Member Server on vSphere
-########################################
-
 # --- vSphere Environment Data Sources ---
 data "vsphere_datacenter" "dc" {
   name = var.vsphere_datacenter
@@ -62,21 +57,6 @@ resource "vsphere_virtual_machine" "member" {
 
   clone {
     template_uuid = data.vsphere_virtual_machine.template.id
-
-    customize {
-      windows_options {
-        computer_name  = var.vm_name
-        admin_password = var.admin_password
-      }
-
-      network_interface {
-        ipv4_address = null
-        ipv4_netmask = null
-      }
-
-      # Set gateway at the top-level of the customize block
-      ipv4_gateway = var.gateway
-    }
   }
 
   ########################################
@@ -84,7 +64,10 @@ resource "vsphere_virtual_machine" "member" {
   ########################################
 
   extra_config = {
-    "guestinfo.userdata" = base64encode(templatefile("${path.module}/userdata-member.tpl", {
+      "guestinfo.metadata"           = base64encode(templatefile("${path.module}/metadata.yaml", {
+      hostname = var.vm_name
+    }))
+     "guestinfo.userdata"           = base64encode(templatefile("${path.module}/userdata-member.tpl", {
       HOSTNAME       = var.vm_name
       DOMAIN_FQDN    = var.domain_fqdn
       NETBIOS_NAME   = var.netbios_name
@@ -96,7 +79,10 @@ resource "vsphere_virtual_machine" "member" {
     }))
     "guestinfo.userdata.encoding" = "base64"
   }
-
+  # Enable VMware Tools interaction (needed for guestinfo)
+  tools_upgrade_policy = "manual"
+  wait_for_guest_net_timeout = 10
+  
   # Allow Terraform to destroy and recreate when template changes
   lifecycle {
     ignore_changes = [

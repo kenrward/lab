@@ -76,7 +76,6 @@ resource "vsphere_virtual_machine" "dc" {
       ADMIN_PASSWORD = var.admin_password
       READY_PORT     = var.ready_port
       READY_PATH     = var.ready_path
-      hostname       = var.vm_name         # 👈 add this line
     }))
     "guestinfo.userdata.encoding"  = "base64"
   }
