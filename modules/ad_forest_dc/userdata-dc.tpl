@@ -1,5 +1,5 @@
 #cloud-config
-hostname: ${hostname}
+hostname: ${HOSTNAME}
 
 write_files:
   # --- Post-promotion script: runs at startup after AD DS install ---
