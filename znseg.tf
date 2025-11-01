@@ -13,6 +13,9 @@ module "zn_seg_server" {
   gateway             = "192.168.11.1"
   dc_ip               = module.ad_forest_dc.dc_ip
   install_script      = "C:\\Installers\\SegSetup.exe /quiet /norestart"
+  ready_check_url     = module.ad_forest_dc.ready_check_url
+  ready_check_port    = var.ready_port
+  ready_check_path    = module.ad_forest_dc.ready_check_path
 
   depends_on = [null_resource.wait_for_dc]
 }

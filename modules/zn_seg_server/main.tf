@@ -73,6 +73,9 @@ resource "vsphere_virtual_machine" "seg" {
       ADMIN_PASSWORD  = var.admin_password
       DC_IP           = var.dc_ip
       INSTALL_SCRIPT  = var.install_script
+      READY_URL       = var.ready_check_url
+      READY_PORT      = var.ready_check_port
+      READY_PATH      = var.ready_check_path
     }))
     "guestinfo.metadata.encoding" = "base64"
     "guestinfo.userdata.encoding" = "base64"

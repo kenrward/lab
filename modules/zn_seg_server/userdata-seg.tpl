@@ -48,6 +48,36 @@ write_files:
           $try++
       }
 
+      $readyUrl = "${READY_URL}"
+      $readyPort = ${READY_PORT}
+      $readyPath = "${READY_PATH}"
+      if (-not [string]::IsNullOrWhiteSpace($readyPath) -and -not $readyPath.StartsWith("/")) {
+          $readyPath = "/$readyPath"
+      }
+      $dcIp = "${DC_IP}"
+      if ([string]::IsNullOrWhiteSpace($readyUrl) -and -not [string]::IsNullOrWhiteSpace($dcIp)) {
+          $readyUrl = "http://$dcIp:$readyPort$readyPath"
+      }
+      if ($readyUrl -and $readyUrl.Trim().Length -gt 0) {
+          Write-Host "Waiting for domain controller readiness signal at $readyUrl"
+          $maxReadyChecks = 60
+          for ($i = 0; $i -lt $maxReadyChecks; $i++) {
+              try {
+                  $response = Invoke-WebRequest -Uri $readyUrl -UseBasicParsing -TimeoutSec 10
+                  if ($response.Content -match 'READY') {
+                      Write-Host "Received READY response from domain controller."
+                      break
+                  }
+                  Write-Host "Readiness probe returned unexpected content."
+              } catch {
+                  Write-Host "Domain controller not ready yet: $_"
+              }
+              Start-Sleep -Seconds 30
+          }
+      } else {
+          Write-Host "No readiness URL provided; proceeding without probe."
+      }
+
       # Optionally join the domain after DNS succeeds
       try {
           $domain = "${DOMAIN_FQDN}"
