@@ -11,3 +11,8 @@ output "vm_id" {
   description = "VM ID of the Domain Controller in Proxmox"
   value       = module.ad_forest_dc.vm_id
 }
+
+output "vm_name" {
+  description = "VM ID of the Domain Controller in Proxmox"
+  value       = module.ad_forest_dc.vm_name
+}

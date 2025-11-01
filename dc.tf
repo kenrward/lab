@@ -36,12 +36,12 @@ resource "null_resource" "wait_for_dc" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      echo "⏳ Waiting for DC IP for $name..."
+      echo "⏳ Waiting for DC IP for $VM_NAME..."
       echo "DEBUG: GOVC_URL=$GOVC_URL"
 
       # Poll vSphere for a valid IP
       for i in {1..60}; do
-        ip=$(govc vm.info -json "$name" | jq -r 'try .virtualMachines[]?.guest?.ipAddress // .virtualMachines[]?.summary?.guest?.ipAddress // empty')
+        ip=$(govc vm.info -json "$VM_NAME" | jq -r 'try .virtualMachines[]?.guest?.ipAddress // .virtualMachines[]?.summary?.guest?.ipAddress // empty')
         if [ -n "$ip" ] && [ "$ip" != "0.0.0.0" ] && [[ ! "$ip" =~ ^169\\.254\\. ]]; then
           echo "✅ Found DC IP: $ip"
           break
