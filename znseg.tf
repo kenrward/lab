@@ -1,6 +1,11 @@
 module "zn_seg_server" {
+
+  for_each = {
+    for name, cfg in local.vms : name => cfg if cfg.role == "member"
+  }
+
   source              = "./modules/zn_seg_server"
-  vm_name             = "seg01"
+  vm_name             = each.value.name
   vsphere_datacenter  = var.vsphere_datacenter
   vsphere_datastore   = var.vsphere_datastore
   vsphere_network     = var.vsphere_network
