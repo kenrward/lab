@@ -12,88 +12,50 @@ write_files:
       Start-Transcript -Path $log -Append
       Write-Host "Starting SegServer application install..."
 
-      # Example installer section
-      try {
-          if (Test-Path "C:\Installers\SegSetup.exe") {
-              Start-Process "C:\Installers\SegSetup.exe" -ArgumentList "/quiet /norestart" -Wait
-          } else {
-              Write-Warning "Seg installer not found at C:\Installers\SegSetup.exe"
+      $installerCommand = ${INSTALL_SCRIPT_JSON}
+      if ([string]::IsNullOrWhiteSpace($installerCommand)) {
+          Write-Warning "No installer command provided."
+      } else {
+          $exe = $null
+          $args = $null
+
+          if ($installerCommand.StartsWith('"')) {
+              $endQuote = $installerCommand.IndexOf('"', 1)
+              if ($endQuote -gt 1) {
+                  $exe = $installerCommand.Substring(1, $endQuote - 1)
+                  $args = $installerCommand.Substring($endQuote + 1).Trim()
+              }
           }
-      } catch {
-          Write-Error "Installation failed: $_"
+
+          if (-not $exe) {
+              $parts = $installerCommand.Split(' ', 2)
+              $exe = $parts[0]
+              if ($parts.Count -gt 1) {
+                  $args = $parts[1]
+              }
+          }
+
+          if (Test-Path $exe) {
+              try {
+                  if ($args -and $args.Length -gt 0) {
+                      Start-Process $exe -ArgumentList $args -Wait
+                  } else {
+                      Start-Process $exe -Wait
+                  }
+              } catch {
+                  Write-Error "Installation failed: $_"
+              }
+          } else {
+              Write-Warning "Seg installer not found at $exe"
+          }
       }
 
       Stop-Transcript
 
   - path: C:\Windows\Temp\join_domain.ps1
     permissions: '0644'
-    content: |
-      $maxTries = 12
-      $try = 0
-      while ($try -lt $maxTries) {
-          $iface = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -ExpandProperty Name -First 1
-          if ($iface) {
-              Write-Host "Found network interface: $iface"
-              try {
-                  Set-DnsClientServerAddress -InterfaceAlias $iface -ServerAddresses ${DC_IP}
-                  Write-Host "DNS server set to ${DC_IP}"
-                  break
-              } catch {
-                  Write-Host "Failed to set DNS: $_"
-              }
-          } else {
-              Write-Host "Network interface not ready, waiting..."
-          }
-          Start-Sleep -Seconds 10
-          $try++
-      }
-
-      $readyUrl = "${READY_URL}"
-      $readyPort = ${READY_PORT}
-      $readyPath = "${READY_PATH}"
-      if (-not [string]::IsNullOrWhiteSpace($readyPath) -and -not $readyPath.StartsWith("/")) {
-          $readyPath = "/$readyPath"
-      }
-      $dcIp = "${DC_IP}"
-      if ([string]::IsNullOrWhiteSpace($readyUrl) -and -not [string]::IsNullOrWhiteSpace($dcIp)) {
-          $readyUrl = "http://$dcIp:$readyPort$readyPath"
-      }
-      if ($readyUrl -and $readyUrl.Trim().Length -gt 0) {
-          Write-Host "Waiting for domain controller readiness signal at $readyUrl"
-          $maxReadyChecks = 60
-          for ($i = 0; $i -lt $maxReadyChecks; $i++) {
-              try {
-                  $response = Invoke-WebRequest -Uri $readyUrl -UseBasicParsing -TimeoutSec 10
-                  if ($response.Content -match 'READY') {
-                      Write-Host "Received READY response from domain controller."
-                      break
-                  }
-                  Write-Host "Readiness probe returned unexpected content."
-              } catch {
-                  Write-Host "Domain controller not ready yet: $_"
-              }
-              Start-Sleep -Seconds 30
-          }
-      } else {
-          Write-Host "No readiness URL provided; proceeding without probe."
-      }
-
-      # Optionally join the domain after DNS succeeds
-      try {
-          $domain = "${DOMAIN_FQDN}"
-          $user = "${JOIN_USERNAME}"
-          $pass = ConvertTo-SecureString "${JOIN_PASSWORD}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ($user, $pass)
-          Add-Computer -DomainName $domain -Credential $cred -Force -ErrorAction Stop
-          Write-Host "Successfully joined domain."
-      } catch {
-          Write-Host "Domain join failed: $_"
-      }
-
-      # Reboot safely
-      Write-Host "Rebooting in 10 seconds..."
-      Start-Sleep -Seconds 10
-      Restart-Computer -Force
+    encoding: b64
+    content: ${JOIN_DOMAIN_PS1_B64}
 
 runcmd:
   - [ powershell.exe, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\join_domain.ps1" ]
