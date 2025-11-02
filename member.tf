@@ -8,7 +8,7 @@ module "win_member" {
 
 
   # --- Basic domain info ---
-  vm_name        = each.key
+  vm_name        = each.value.name
   domain_fqdn    = var.domain_fqdn
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
