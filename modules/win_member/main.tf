@@ -25,6 +25,18 @@ data "vsphere_host" "esxi" {
 
 locals {
   resource_pool_id = data.vsphere_host.esxi.resource_pool_id
+
+  join_domain_ps1 = templatefile("${path.module}/join_domain.ps1.tpl", {
+    DC_IP_JSON          = jsonencode(var.dc_ip)
+    READY_URL_JSON      = jsonencode(var.ready_check_url)
+    READY_PORT          = var.ready_check_port
+    READY_PATH_JSON     = jsonencode(var.ready_check_path)
+    DOMAIN_FQDN_JSON    = jsonencode(var.domain_fqdn)
+    JOIN_USERNAME_JSON  = jsonencode(var.join_username)
+    JOIN_PASSWORD_JSON  = jsonencode(var.join_password)
+  })
+
+  join_domain_ps1_b64 = base64encode(replace(local.join_domain_ps1, "\n", "\r\n"))
 }
 
 ########################################
@@ -64,21 +76,14 @@ resource "vsphere_virtual_machine" "member" {
   ########################################
 
   extra_config = {
-      "guestinfo.metadata"           = base64encode(templatefile("${path.module}/metadata.yaml", {
+    "guestinfo.metadata" = base64encode(templatefile("${path.module}/metadata.yaml", {
       hostname = var.vm_name
     }))
-     "guestinfo.userdata"           = base64encode(templatefile("${path.module}/userdata-member.tpl", {
-      HOSTNAME       = var.vm_name
-      DOMAIN_FQDN    = var.domain_fqdn
-      NETBIOS_NAME   = var.netbios_name
-     READY_URL      = var.ready_check_url
-      READY_PORT     = var.ready_check_port
-      READY_PATH     = var.ready_check_path
-      ADMIN_PASSWORD = var.admin_password
-      JOIN_USERNAME  = var.join_username
-      JOIN_PASSWORD  = var.join_password
-      DC_IP          = var.dc_ip
+    "guestinfo.userdata" = base64encode(templatefile("${path.module}/userdata-member.tpl", {
+      HOSTNAME              = var.vm_name
+      JOIN_DOMAIN_PS1_B64   = local.join_domain_ps1_b64
     }))
+    "guestinfo.metadata.encoding" = "base64"
     "guestinfo.userdata.encoding" = "base64"
   }
   # Enable VMware Tools interaction (needed for guestinfo)
