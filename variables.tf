@@ -111,13 +111,13 @@ variable "folder" {
 variable "cores" {
   description = "Number of vCPUs for the DC"
   type        = number
-  default     = 2
+  default     = 4
 }
 
 variable "memory_mb" {
   description = "RAM size (MB) for the DC"
   type        = number
-  default     = 4096
+  default     = 8192
 }
 
 variable "disk_size_gb" {

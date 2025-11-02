@@ -58,14 +58,19 @@ resource "null_resource" "wait_for_dc" {
       READY_URL="http://$ip:$READY_PORT$READY_PATH"
       echo "🌐 Detected DC IP: $ip — probing readiness at $READY_URL"
       for i in {1..90}; do
-        if curl -sf "$READY_URL" | grep -q READY; then
+        # Use -s for silent, -f for fail silently on server errors, -m for timeout
+        RESPONSE=$(curl -sfm 5 "$READY_URL") 
+        if echo "$RESPONSE" | grep -q READY; then
           echo "✅ DC is READY (responded on $ip)"
           exit 0
         fi
+        
+        # New: Print the response when it fails to match "READY"
+        echo "DEBUG: Readiness check response was: '$RESPONSE'"
+        
         echo "⏱️ Retry ($i/90)..."
         sleep 30
       done
-
       echo "❌ Timed out waiting for Domain Controller readiness."
       exit 1
     EOT
