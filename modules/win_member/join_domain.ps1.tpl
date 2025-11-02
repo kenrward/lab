@@ -1,67 +1,58 @@
 $maxTries = 12
 $try = 0
+$dcIp = ${DC_IP_JSON}
+$dcIpTrimmed = ""
+if ($dcIp) {
+    $dcIpTrimmed = $dcIp.Trim()
+}
 
 while ($try -lt $maxTries) {
     $iface = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -ExpandProperty Name -First 1
     if ($iface) {
         Write-Host "Found network interface: $iface"
-        $dcIpValue = ${DC_IP_JSON}
-        $dcIp = ""
-        if ($dcIpValue) {
-            $dcIp = $dcIpValue.Trim()
-        }
-
-        try {
-            if ([string]::IsNullOrWhiteSpace($dcIp)) {
-                Write-Host "No domain controller IP provided; skipping DNS configuration."
+        if ($dcIpTrimmed.Length -gt 0) {
+            try {
+                Set-DnsClientServerAddress -InterfaceAlias $iface -ServerAddresses $dcIpTrimmed
+                Write-Host "DNS server set to $dcIpTrimmed"
                 break
+            } catch {
+                Write-Host "Failed to set DNS: $_"
             }
-
-            Set-DnsClientServerAddress -InterfaceAlias $iface -ServerAddresses $dcIp
-            Write-Host "DNS server set to $dcIp"
+        } else {
+            Write-Host "No domain controller IP provided; skipping DNS configuration."
             break
-        } catch {
-            Write-Host "Failed to set DNS: $_"
         }
     } else {
         Write-Host "Network interface not ready, waiting..."
     }
-
     Start-Sleep -Seconds 10
     $try++
 }
 
-$readyUrlValue = ${READY_URL_JSON}
-if ($readyUrlValue) {
-    $readyUrl = $readyUrlValue.Trim()
-} else {
-    $readyUrl = ""
-}
-
+$readyUrl = ${READY_URL_JSON}
 $readyPort = ${READY_PORT}
-$readyPathValue = ${READY_PATH_JSON}
-if ($readyPathValue) {
-    $readyPath = $readyPathValue.Trim()
+$readyPath = ${READY_PATH_JSON}
+
+if ($readyPath) {
+    $readyPath = $readyPath.Trim()
+    if ($readyPath.Length -gt 0 -and -not $readyPath.StartsWith("/")) {
+        $readyPath = "/" + $readyPath
+    }
 } else {
     $readyPath = ""
 }
 
-if (-not [string]::IsNullOrWhiteSpace($readyPath) -and -not $readyPath.StartsWith("/")) {
-    $readyPath = "/" + $readyPath
-}
-
-$dcIpForUrlValue = ${DC_IP_JSON}
-if ($dcIpForUrlValue) {
-    $dcIpForUrl = $dcIpForUrlValue.Trim()
+if ($readyUrl) {
+    $readyUrl = $readyUrl.Trim()
 } else {
-    $dcIpForUrl = ""
+    $readyUrl = ""
 }
 
-if ([string]::IsNullOrWhiteSpace($readyUrl) -and -not [string]::IsNullOrWhiteSpace($dcIpForUrl)) {
-    $readyUrl = "http://$dcIpForUrl:$readyPort$readyPath"
+if ($readyUrl.Length -eq 0 -and $dcIpTrimmed.Length -gt 0) {
+    $readyUrl = "http://$dcIpTrimmed:$readyPort$readyPath"
 }
 
-if (-not [string]::IsNullOrWhiteSpace($readyUrl)) {
+if ($readyUrl.Length -gt 0) {
     Write-Host "Waiting for domain controller readiness signal at $readyUrl"
     $maxReadyChecks = 60
     for ($i = 0; $i -lt $maxReadyChecks; $i++) {
@@ -81,28 +72,23 @@ if (-not [string]::IsNullOrWhiteSpace($readyUrl)) {
     Write-Host "No readiness URL provided; proceeding without probe."
 }
 
-$domainValue = ${DOMAIN_FQDN_JSON}
-if ($domainValue) {
-    $domain = $domainValue.Trim()
+$domain = ${DOMAIN_FQDN_JSON}
+if ($domain) {
+    $domain = $domain.Trim()
 } else {
     $domain = ""
 }
 
-$joinUserValue = ${JOIN_USERNAME_JSON}
-if ($joinUserValue) {
-    $joinUser = $joinUserValue.Trim()
+$joinUser = ${JOIN_USERNAME_JSON}
+if ($joinUser) {
+    $joinUser = $joinUser.Trim()
 } else {
     $joinUser = ""
 }
 
-$joinPasswordPlainValue = ${JOIN_PASSWORD_JSON}
-if ($joinPasswordPlainValue) {
-    $joinPasswordPlain = $joinPasswordPlainValue
-} else {
-    $joinPasswordPlain = $null
-}
+$joinPasswordPlain = ${JOIN_PASSWORD_JSON}
 
-if (-not [string]::IsNullOrWhiteSpace($domain) -and -not [string]::IsNullOrWhiteSpace($joinUser) -and $joinPasswordPlain) {
+if ($domain.Length -gt 0 -and $joinUser.Length -gt 0 -and $joinPasswordPlain) {
     try {
         $securePass = ConvertTo-SecureString $joinPasswordPlain -AsPlainText -Force
         $cred = New-Object System.Management.Automation.PSCredential ($joinUser, $securePass)
