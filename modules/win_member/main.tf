@@ -56,8 +56,19 @@ resource "vsphere_virtual_machine" "member" {
   }
 
   clone {
-    template_uuid = data.vsphere_virtual_machine.template.id
+  template_uuid = data.vsphere_virtual_machine.template.id
+
+  customize {
+    windows_options {
+      computer_name  = var.vm_name
+      admin_password = var.admin_password
+      time_zone      = 035  # optional: Central US
+    }
+
+    network_interface {}
   }
+}
+
 
   ########################################
   # Cloudbase-Init (Userdata Injection)

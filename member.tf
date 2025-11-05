@@ -31,7 +31,7 @@ module "win_member" {
   disk_size_gb = var.disk_size_gb
 
   # --- Domain join credentials ---
-  join_username = "Administrator"
+  join_username = "Administrator@${var.domain_fqdn}"
   join_password = var.admin_password
 
   # --- Ready check ---
