@@ -1,46 +1,43 @@
-resource "null_resource" "wait_for_dc" {
-  depends_on = [module.ad_forest_dc]
-
-  provisioner "local-exec" {
-    command     = <<EOT
-      echo "Waiting for DC to signal readiness..."
-      sleep 30
-      for i in {1..90}; do
-        if curl -sf ${module.ad_forest_dc.ready_check_url} | grep -q READY; then
-          echo "✅ DC is ready!"
-          exit 0
-        fi
-        echo "⏳ DC not ready yet... retrying ($i/90)"
-        sleep 30
-      done
-      echo "❌ Timed out waiting for DC readiness"
-      exit 1
-    EOT
-    interpreter = ["bash", "-c"]
-  }
-}
-
-
-
-
 module "win_member" {
-  source         = "./modules/win_member"
-  vm_name        = local.vms["app1"].name
+  for_each = {
+    for name, cfg in local.vms : name => cfg if cfg.role == "member"
+  }
+
+  source = "./modules/win_member"
+
+
+
+  # --- Basic domain info ---
+  vm_name        = each.value.name
   domain_fqdn    = var.domain_fqdn
   netbios_name   = var.netbios_name
   admin_password = var.admin_password
-  node           = var.node
   dc_ip          = module.ad_forest_dc.dc_ip
 
-  # --- Required module inputs ---
-  template_vm_id = var.base_template_id
-  target_storage = var.storage
-  join_username  = "Administrator"
-  join_password  = var.admin_password
-  ci_password    = var.admin_password
 
-  # --- Optional health/ready check ---
-  ready_check_url = "http://${module.ad_forest_dc.dc_ip}:8080"
+  # --- vSphere environment ---
+  vsphere_datacenter = var.vsphere_datacenter
+  vsphere_cluster    = var.vsphere_cluster
+  vsphere_network    = var.vsphere_network
+  vsphere_datastore  = var.vsphere_datastore
+  vsphere_host       = "192.168.1.51"
+  template_name      = var.template_name
+  folder             = var.folder
+  gateway            = var.gateway
+
+  # --- Hardware ---
+  cores        = var.cores
+  memory_mb    = var.memory_mb
+  disk_size_gb = var.disk_size_gb
+
+  # --- Domain join credentials ---
+  join_username = "Administrator@${var.domain_fqdn}"
+  join_password = var.admin_password
+
+  # --- Ready check ---
+  ready_check_url = module.ad_forest_dc.ready_check_url
+  ready_check_port = var.ready_port
+  ready_check_path = module.ad_forest_dc.ready_check_path
 
   depends_on = [null_resource.wait_for_dc]
 }

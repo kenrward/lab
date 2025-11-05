@@ -1,89 +1,107 @@
-terraform {
-  required_version = ">= 1.6.0"
-  required_providers {
-    proxmox = {
-      source  = "bpg/proxmox"
-      version = ">= 0.57.0"
-    }
-  }
+# --- Data sources ---
+data "vsphere_datacenter" "dc" {
+  name = var.vsphere_datacenter
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = var.vsphere_datastore
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_network" "network" {
+  name          = var.vsphere_network
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_host" "esxi" {
+  name          = var.vsphere_host
+  datacenter_id = data.vsphere_datacenter.dc.id
 }
 
 locals {
-  dc_ip = flatten(proxmox_virtual_environment_vm.dc.ipv4_addresses)[0]
+  resource_pool_id = data.vsphere_host.esxi.resource_pool_id
+
+  ready_check_path = trimspace(var.ready_path) != "" ? (
+    startswith(var.ready_path, "/") ? var.ready_path : "/${var.ready_path}"
+  ) : ""
+
+  # Defensive null-to-string conversion
+  dc_ip_from_vsphere = (
+    can(data.vsphere_virtual_machine.dc_refreshed.default_ip_address) && 
+    data.vsphere_virtual_machine.dc_refreshed.default_ip_address != null ?
+    tostring(data.vsphere_virtual_machine.dc_refreshed.default_ip_address) :
+    ""
+  )
+
+  ready_check_url = (
+    local.dc_ip_from_vsphere != "" && var.ready_port > 0
+    ? format("http://%s:%d%s", local.dc_ip_from_vsphere, var.ready_port, local.ready_check_path)
+    : ""
+  )
 }
 
 
-# 1) Upload Cloud-Init user-data snippet as a Proxmox "snippets" file
-resource "proxmox_virtual_environment_file" "dc_userdata" {
-  content_type = "snippets"
-  datastore_id = "local" # adjust if you store snippets elsewhere
-  node_name    = var.node
-  source_raw {
-    data = templatefile("${path.module}/userdata-dc.tpl", {
+
+data "vsphere_virtual_machine" "template" {
+  name          = var.template_name
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+# --- Domain Controller VM ---
+resource "vsphere_virtual_machine" "dc" {
+  name             = var.vm_name
+  resource_pool_id = local.resource_pool_id
+  datastore_id     = data.vsphere_datastore.datastore.id
+  folder           = var.folder
+  num_cpus         = var.cores
+  memory           = var.memory_mb
+  guest_id         = "windows2019srv_64Guest"
+  scsi_type        = "lsilogic-sas"
+  firmware         = "efi"
+
+  network_interface {
+    network_id   = data.vsphere_network.network.id
+    adapter_type = "vmxnet3"
+  }
+
+  disk {
+    label            = "${var.vm_name}.vmdk"
+    size             = var.disk_size_gb
+    eagerly_scrub    = false
+    thin_provisioned = true
+  }
+
+  clone {
+    template_uuid = data.vsphere_virtual_machine.template.id
+  }
+
+  # --- Cloudbase-Init metadata and user-data ---
+  extra_config = {
+    "guestinfo.metadata"           = base64encode(templatefile("${path.module}/metadata.yaml", {
+      hostname = var.vm_name
+    }))
+    "guestinfo.metadata.encoding"  = "base64"
+
+    "guestinfo.userdata"           = base64encode(templatefile("${path.module}/userdata-dc.tpl", {
       HOSTNAME       = var.vm_name
       DOMAIN_FQDN    = var.domain_fqdn
       NETBIOS_NAME   = var.netbios_name
       DSRM_PASSWORD  = var.dsrm_password
-      ADMIN_PASSWORD = var.admin_password # Retaining this, though it's unused in the PS script
+      ADMIN_PASSWORD = var.admin_password
       READY_PORT     = var.ready_port
       READY_PATH     = var.ready_path
-    })
-    file_name = "userdata-${var.vm_name}.yaml"
+    }))
+    "guestinfo.userdata.encoding"  = "base64"
   }
+
+
+  # Enable VMware Tools interaction (needed for guestinfo)
+  tools_upgrade_policy = "manual"
+  wait_for_guest_net_timeout = 10
 }
 
-# 2) Create the DC VM by cloning your generalized Win 2022 + Cloudbase-Init template
-resource "proxmox_virtual_environment_vm" "dc" {
-  name        = var.vm_name
-  node_name   = var.node
-  pool_id     = var.pool
-  description = "AD Forest DC for ${var.domain_fqdn}"
-
-  clone {
-    vm_id = var.template_vm_id
-    full  = true
-  }
-
-  cpu {
-    cores = var.cores
-    type  = "host"
-  }
-
-  memory {
-    dedicated = var.memory_mb
-  }
-
-  disk {
-    interface    = "scsi0"
-    size         = var.disk_size_gb
-    datastore_id = var.target_storage
-    discard      = "on"
-  }
-
-  network_device {
-    bridge = var.bridge
-    model  = "virtio"
-  }
-
-  agent {
-    enabled = true
-  }
-
-  boot_order = ["scsi0"]
-
-  # Cloud-Init: user, pass, and custom user-data snippet
-  initialization {
-    datastore_id = var.target_storage
-    user_account {
-      username = var.ci_user
-      password = var.ci_password
-    }
-    ip_config {
-      ipv4 {
-        address = "dhcp"
-      }
-    }
-    user_data_file_id = proxmox_virtual_environment_file.dc_userdata.id
-
-  }
+data "vsphere_virtual_machine" "dc_refreshed" {
+  depends_on = [vsphere_virtual_machine.dc]
+  name          = vsphere_virtual_machine.dc.name
+  datacenter_id = data.vsphere_datacenter.dc.id
 }

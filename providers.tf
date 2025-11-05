@@ -1,25 +1,17 @@
 terraform {
   required_version = ">= 1.6.0"
   required_providers {
-    proxmox = {
-      source  = "bpg/proxmox"
-      version = "0.84.1"
+    vsphere = {
+      source  = "hashicorp/vsphere"
+      version = ">= 2.12.0"
     }
   }
 }
 
-provider "proxmox" {
-  endpoint  = var.proxmox_api_url
-  username  = var.proxmox_api_token_id
-  api_token = var.proxmox_api_token_secret
-  insecure  = false
-
-  ssh {
-    agent    = true
-    username = "root" #
-    node {
-      name    = var.node_name # "pve"
-      address = "192.168.86.21"
-    }
-  }
+provider "vsphere" {
+  user                 = var.vsphere_user
+  password             = var.vsphere_password
+  vsphere_server       = var.vsphere_server
+  allow_unverified_ssl = true
+  api_timeout          = 60
 }

@@ -2,19 +2,6 @@ variable "vm_name" {
   type = string
 }
 
-variable "node" {
-  type = string
-}
-
-variable "pool" {
-  type    = string
-  default = null
-}
-
-variable "target_storage" {
-  type = string
-}
-
 variable "cores" {
   type    = number
   default = 4
@@ -23,24 +10,6 @@ variable "cores" {
 variable "memory_mb" {
   type    = number
   default = 8192
-}
-
-variable "bridge" {
-  type    = string
-  default = "vmbr0"
-}
-
-variable "template_vm_id" {
-  type = number
-}
-
-variable "ci_user" {
-  type    = string
-  default = "Administrator"
-}
-
-variable "ci_password" {
-  type = string
 }
 
 variable "domain_fqdn" {
@@ -52,6 +21,14 @@ variable "netbios_name" {
 }
 
 variable "ready_check_url" {
+  type = string
+}
+
+variable "ready_check_port" {
+  type = number
+}
+
+variable "ready_check_path" {
   type = string
 }
 
@@ -77,6 +54,47 @@ variable "dc_ip" {
 variable "admin_password" {
   type      = string
   sensitive = true
+}
+
+# --- vSphere Environment ---
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+}
+
+variable "vsphere_network" {
+  description = "vSphere network name"
+  type        = string
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore name"
+  type        = string
+}
+
+variable "template_name" {
+  description = "vSphere template name to clone from"
+  type        = string
+}
+
+variable "folder" {
+  description = "vSphere folder to place VM in (optional)"
+  type        = string
+  default     = ""
+}
+variable "gateway" {
+  description = "Default IPv4 gateway for the member server"
+  type        = string
+}
+
+variable "vsphere_host" {
+  description = "Name or IP of the ESXi host where the VM will be created"
+  type        = string
 }
 
 

@@ -1,36 +1,32 @@
-output "domain_fqdn" { value = var.domain_fqdn }
-output "dc_ip" {
-  description = "Primary IPv4 address of the Domain Controller (filtered)"
-  value = try(
-    tolist([
-      for ip in flatten([
-        for iface in proxmox_virtual_environment_vm.dc.ipv4_addresses : iface
-        if length(iface) > 0
-      ]) : ip
-      if length(trimspace(ip)) > 0
-      && !startswith(ip, "169.254.")
-      && !startswith(ip, "127.")
-    ])[0],
-    "0.0.0.0"
-  )
-}
-output "ready_check_url" {
-  description = "HTTP readiness probe URL for the DC"
-  value = "http://${try(
-    tolist([
-      for ip in flatten([
-        for iface in proxmox_virtual_environment_vm.dc.ipv4_addresses : iface
-        if length(iface) > 0
-      ]) : ip
-      if length(trimspace(ip)) > 0
-      && !startswith(ip, "169.254.")
-      && !startswith(ip, "127.")
-    ])[0],
-    "0.0.0.0"
-  )}:${var.ready_port}/"
+
+
+# --- Domain FQDN ---
+output "domain_fqdn" {
+  value = var.domain_fqdn
 }
 
+# --- Dynamically detect the DC's IP via VMware Tools ---
+output "dc_ip" {
+  description = "DC IP after VMware Tools reports it"
+  value       = try(data.vsphere_virtual_machine.dc_refreshed.default_ip_address, null)
+}
+output "ready_check_url" {
+  description = "URL polled by dependent modules/resources to confirm DC readiness"
+  value       = local.ready_check_url
+}
+
+output "ready_check_path" {
+  description = "Normalized HTTP path segment used for readiness probes"
+  value       = local.ready_check_path
+}
+
+
+# --- Optional for debugging ---
 output "vm_id" {
-  description = "VM ID of the Domain Controller in Proxmox"
-  value       = proxmox_virtual_environment_vm.dc.id
+  description = "vSphere VM ID of the DC"
+  value       = vsphere_virtual_machine.dc.id
+}
+output "vm_name" {
+  description = "VM name of the Domain Controller"
+  value       = var.vm_name
 }

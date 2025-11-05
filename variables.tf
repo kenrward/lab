@@ -1,65 +1,9 @@
-variable "node" {
-  type = string
-}
-
-variable "node_name" {
-  type        = string
-  default     = "pve"
-  description = "Target Proxmox node"
-}
-
-variable "pool" {
-  type    = string
-  default = null
-}
-
-variable "storage" {
-  type    = string
-  default = "local-zfs"
-}
-
-variable "bridge" {
-  type    = string
-  default = "vmbr0"
-}
-
-variable "base_template_id" {
-  type    = number
-  default = 8002
-}
-
-variable "proxmox_api_url" {
-  type = string
-}
-
-variable "proxmox_api_token_id" {
-  type = string
-}
-
-variable "proxmox_api_token_secret" {
-  type      = string
-  sensitive = true
-}
-
-variable "initial_admin_password" {
-  type      = string
-  sensitive = true
-}
 
 variable "dsrm_password" {
   type      = string
   sensitive = true
 }
 
-variable "domain_admin_password" {
-  type      = string
-  sensitive = true
-}
-
-variable "joiner_password" {
-  type      = string
-  sensitive = true
-}
 
 # Active Directory domain FQDN (e.g. lab.local)
 variable "domain_fqdn" {
@@ -100,5 +44,85 @@ variable "vms" {
     name = string
     role = string
   }))
+}
+
+# --- Static networking for DC ---
+variable "dc_static_ip" {
+  description = "Static IPv4 address and prefix for the domain controller (CIDR format)"
+  type        = string
+  default    = "0.0.0.0/24"
+}
+
+variable "gateway" {
+  description = "Default IPv4 gateway for static DC networking"
+  type        = string
+  default     = "192.168.86.1"
+}
+
+variable "vsphere_user" {
+  description = "vSphere username"
+  type        = string
+}
+
+variable "vsphere_password" {
+  description = "vSphere password"
+  type        = string
+  sensitive   = true
+}
+
+variable "vsphere_server" {
+  description = "vCenter server FQDN or IP"
+  type        = string
+}
+
+variable "vsphere_datacenter" {
+  description = "vSphere datacenter name"
+  type        = string
+}
+
+variable "vsphere_cluster" {
+  description = "vSphere cluster name"
+  type        = string
+}
+
+variable "vsphere_network" {
+  description = "vSphere network name"
+  type        = string
+}
+
+variable "vsphere_datastore" {
+  description = "vSphere datastore name"
+  type        = string
+}
+
+# --- vSphere template + folder ---
+variable "template_name" {
+  description = "Name of the Windows Server template to clone from"
+  type        = string
+}
+
+variable "folder" {
+  description = "Optional folder in vSphere to place the VM"
+  type        = string
+  default     = ""
+}
+
+# --- VM hardware defaults ---
+variable "cores" {
+  description = "Number of vCPUs for the DC"
+  type        = number
+  default     = 4
+}
+
+variable "memory_mb" {
+  description = "RAM size (MB) for the DC"
+  type        = number
+  default     = 8192
+}
+
+variable "disk_size_gb" {
+  description = "Primary disk size (GB) for the DC"
+  type        = number
+  default     = 150
 }
 
