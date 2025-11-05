@@ -55,7 +55,6 @@ resource "null_resource" "wait_for_dc" {
         exit 1
       fi
 
-      READY_URL="http://$ip:$READY_PORT$READY_PATH"
       echo "🌐 Detected DC IP: $ip — probing readiness at $READY_URL"
       for i in {1..90}; do
         # Use -s for silent, -f for fail silently on server errors, -m for timeout
@@ -83,6 +82,7 @@ resource "null_resource" "wait_for_dc" {
       VM_NAME       = module.ad_forest_dc.vm_name
       READY_PORT    = var.ready_port
       READY_PATH    = module.ad_forest_dc.ready_check_path
+      READY_URL     = module.ad_forest_dc.ready_check_url
     }
   }
 }

@@ -30,6 +30,8 @@ write_files:
     content: |
       $maxTries = 12
       $try = 0
+      $LogFile   = "C:\Windows\Temp\join_domain.log"
+      Start-Transcript -Path $LogFile -Append
       while ($try -lt $maxTries) {
           $iface = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -ExpandProperty Name -First 1
           if ($iface) {
@@ -55,9 +57,6 @@ write_files:
           $readyPath = "/$readyPath"
       }
       $dcIp = "${DC_IP}"
-      if ([string]::IsNullOrWhiteSpace($readyUrl) -and -not [string]::IsNullOrWhiteSpace($dcIp)) {
-          $readyUrl = "http://$dcIp:$readyPort$readyPath"
-      }
       if ($readyUrl -and $readyUrl.Trim().Length -gt 0) {
           Write-Host "Waiting for domain controller readiness signal at $readyUrl"
           $maxReadyChecks = 60
@@ -92,6 +91,7 @@ write_files:
 
       # Reboot safely
       Write-Host "Rebooting in 10 seconds..."
+      Stop-Transcript
       Start-Sleep -Seconds 10
       Restart-Computer -Force
 

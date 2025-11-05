@@ -1,7 +1,7 @@
 module "zn_seg_server" {
 
   for_each = {
-    for name, cfg in local.vms : name => cfg if cfg.role == "member"
+    for name, cfg in local.vms : name => cfg if cfg.role == "seg"
   }
 
   source              = "./modules/zn_seg_server"
@@ -11,8 +11,8 @@ module "zn_seg_server" {
   vsphere_network     = var.vsphere_network
   vsphere_host        = "192.168.1.51"
   template_name       = var.template_name
-  domain_fqdn         = "lab.local"
-  join_username       = "LAB\\Administrator"
+  domain_fqdn         = var.domain_fqdn
+  join_username       = "Administrator"
   join_password       = var.admin_password
   admin_password      = var.admin_password
   gateway             = "192.168.11.1"
