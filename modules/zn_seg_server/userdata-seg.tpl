@@ -28,11 +28,30 @@ write_files:
   - path: C:\Windows\Temp\join_domain.ps1
     permissions: '0644'
     content: |
-      $maxTries = 12
-      $try = 0
-      $LogFile   = "C:\Windows\Temp\join_domain.log"
+      [CmdletBinding()]
+      param()
+
+      $LogFile = "C:\Windows\Temp\join_domain.log"
       Start-Transcript -Path $LogFile -Append
-      while ($try -lt $maxTries) {
+
+      Write-Host "=== Domain Join Script Starting ==="
+
+      # --- Ensure Administrator password is set and login flags cleared ---
+      try {
+          Write-Host "Setting local Administrator password..."
+          $adminUser = "Administrator"
+          $adminPass = ConvertTo-SecureString "${ADMIN_PASSWORD}" -AsPlainText -Force
+          Set-LocalUser -Name $adminUser -Password $adminPass
+          Set-LocalUser -Name $adminUser -PasswordNeverExpires $true
+          wmic useraccount where "name='$adminUser'" set PasswordExpires=FALSE | Out-Null
+          Write-Host "Administrator password set and expiration cleared."
+      } catch {
+          Write-Host "Warning: Could not set Administrator password - $_"
+      }
+
+      # --- Wait for network interface and set DNS ---
+      $maxTries = 12
+      for ($try = 1; $try -le $maxTries; $try++) {
           $iface = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' } | Select-Object -ExpandProperty Name -First 1
           if ($iface) {
               Write-Host "Found network interface: $iface"
@@ -44,56 +63,35 @@ write_files:
                   Write-Host "Failed to set DNS: $_"
               }
           } else {
-              Write-Host "Network interface not ready, waiting..."
+              Write-Host "Network interface not ready, waiting ($try/$maxTries)..."
+              Start-Sleep -Seconds 10
           }
-          Start-Sleep -Seconds 10
-          $try++
       }
 
-      $readyUrl = "${READY_URL}"
-      $readyPort = ${READY_PORT}
-      $readyPath = "${READY_PATH}"
-      if (-not [string]::IsNullOrWhiteSpace($readyPath) -and -not $readyPath.StartsWith("/")) {
-          $readyPath = "/$readyPath"
-      }
-      $dcIp = "${DC_IP}"
-      if ($readyUrl -and $readyUrl.Trim().Length -gt 0) {
-          Write-Host "Waiting for domain controller readiness signal at $readyUrl"
-          $maxReadyChecks = 60
-          for ($i = 0; $i -lt $maxReadyChecks; $i++) {
-              try {
-                  $response = Invoke-WebRequest -Uri $readyUrl -UseBasicParsing -TimeoutSec 10
-                  if ($response.Content -match 'READY') {
-                      Write-Host "Received READY response from domain controller."
-                      break
-                  }
-                  Write-Host "Readiness probe returned unexpected content."
-              } catch {
-                  Write-Host "Domain controller not ready yet: $_"
-              }
-              Start-Sleep -Seconds 30
-          }
+      # --- Check if already domain-joined ---
+      $domain = "${DOMAIN_FQDN}"
+      $currentDomain = (Get-WmiObject Win32_ComputerSystem).Domain
+      if ((Get-WmiObject Win32_ComputerSystem).PartOfDomain -and ($currentDomain -ieq $domain)) {
+          Write-Host "Machine is already joined to $currentDomain, skipping domain join."
       } else {
-          Write-Host "No readiness URL provided; proceeding without probe."
+          try {
+              Write-Host "Joining domain $domain..."
+              $user = "${JOIN_USERNAME}"
+              $pass = ConvertTo-SecureString "${JOIN_PASSWORD}" -AsPlainText -Force
+              $cred = New-Object System.Management.Automation.PSCredential ($user, $pass)
+              Add-Computer -DomainName $domain -Credential $cred -Force -ErrorAction Stop
+              Write-Host "Successfully joined domain $domain."
+          } catch {
+              Write-Host "Domain join failed: $_"
+          }
       }
 
-      # Optionally join the domain after DNS succeeds
-      try {
-          $domain = "${DOMAIN_FQDN}"
-          $user = "${JOIN_USERNAME}"
-          $pass = ConvertTo-SecureString "${JOIN_PASSWORD}" -AsPlainText -Force
-          $cred = New-Object System.Management.Automation.PSCredential ($user, $pass)
-          Add-Computer -DomainName $domain -Credential $cred -Force -ErrorAction Stop
-          Write-Host "Successfully joined domain."
-      } catch {
-          Write-Host "Domain join failed: $_"
-      }
+      # --- Wait briefly to let Cloudbase-Init finalize ---
+      Write-Host "Waiting for Cloudbase-Init to finalize..."
+      Start-Sleep -Seconds 30
 
-      # Reboot safely
-      Write-Host "Rebooting in 10 seconds..."
+      Write-Host "=== Domain Join Script Completed ==="
       Stop-Transcript
-      Start-Sleep -Seconds 10
-      Restart-Computer -Force
 
 runcmd:
   - [ powershell.exe, -ExecutionPolicy, Bypass, -File, "C:\\Windows\\Temp\\join_domain.ps1" ]
