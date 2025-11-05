@@ -161,9 +161,9 @@ write_files:
 
       Install-ADDSForest @params | Out-Null
       New-Item -ItemType File -Path $flagFile -Force | Out-Null
-      Restart-Computer -Force
       Write-Host "AD DS promotion initiated, rebooting..."
       Stop-Transcript
+      Start-Sleep -Seconds 5
       Restart-Computer -Force
 
 runcmd:
