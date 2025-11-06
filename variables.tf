@@ -125,4 +125,8 @@ variable "disk_size_gb" {
   type        = number
   default     = 150
 }
-
+variable "segtoken" {
+  description = "Zero Networks Segment Server token for registration"
+  type        = string
+  sensitive   = true
+}
