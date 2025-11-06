@@ -21,6 +21,7 @@ module "zn_seg_server" {
   ready_check_url     = module.ad_forest_dc.ready_check_url
   ready_check_port    = var.ready_port
   ready_check_path    = module.ad_forest_dc.ready_check_path
+  segtoken            = var.segtoken
 
   depends_on = [null_resource.wait_for_dc]
 }
