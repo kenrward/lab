@@ -30,7 +30,7 @@ if ($cbSvc.StartType -ne 'Automatic') {
 
 # Then set DelayedAutoStart flag in registry
 Write-Host "Enabling delayed auto-start for cloudbase-init..."
-Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\cloudbase-init" -Name DelayedAutoStart -Value 1 -Force
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\cloudbase-init" -Name Start -Value 4 -Force
 
 # Stop before sealing (prevents it kicking during shutdown)
 if ($cbSvc.Status -ne 'Stopped') {
