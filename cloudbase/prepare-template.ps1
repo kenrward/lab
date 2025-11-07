@@ -101,10 +101,10 @@ wevtutil el | ForEach-Object {
 Write-Host "Prep complete."
 
 if ($Seal) {
-  Write-Host "Sealing with Sysprep..."
-  $args = "/generalize /oobe /shutdown /unattend:`"$UnattendPath`""
-  Start-Process -FilePath "$env:WINDIR\System32\Sysprep\Sysprep.exe" -ArgumentList $args -Wait
-  Write-Host "Sysprep complete. Machine will shut down. Convert to template and do not power on."
+    Write-Host "Sealing with Sysprep..."
+    $unatt = "$env:ProgramFiles\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"
+    & "$env:WINDIR\System32\Sysprep\sysprep.exe" /generalize /oobe /shutdown /unattend:"$unatt"
+    Write-Host "Sysprep complete. Machine will shut down. Convert to template and do not power on."
 } else {
-  Write-Host "Dry run done. Re-run with -Seal to execute Sysprep automatically."
+    Write-Host "Dry run done. Re-run with -Seal to execute Sysprep automatically."
 }
