@@ -39,7 +39,7 @@ resource "vsphere_virtual_machine" "member" {
 
   num_cpus  = var.cores
   memory    = var.memory_mb
-  guest_id  = "windows2019srv_64Guest"
+  guest_id  = var.guest_version
   scsi_type = "lsilogic-sas"
   firmware         = "efi"
 

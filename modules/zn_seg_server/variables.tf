@@ -101,4 +101,9 @@ variable "segtoken" {
   description = "Segmentation server Install token"
   type        = string
 }
+variable "guest_version" {
+  description = "vSphere guest OS version identifier"
+  type        = string
+}
+
 
