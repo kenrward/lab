@@ -93,7 +93,10 @@ Get-ChildItem "C:\Users" -Directory | ForEach-Object {
 }
 
 # 9) Event logs (optional but useful)
-wevtutil el | ForEach-Object { wevtutil cl $_ } | Out-Null
+wevtutil el | ForEach-Object {
+    try { wevtutil cl $_ 2>$null } catch {}
+}
+
 
 Write-Host "Prep complete."
 
