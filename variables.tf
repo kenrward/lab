@@ -101,6 +101,12 @@ variable "template_name" {
   type        = string
 }
 
+variable "guest_version" {
+  description = "vSphere guest OS version identifier"
+  type        = string
+}
+
+
 variable "folder" {
   description = "Optional folder in vSphere to place the VM"
   type        = string
