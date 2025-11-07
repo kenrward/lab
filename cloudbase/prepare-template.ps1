@@ -22,10 +22,16 @@ if (-not $vmtools) { Write-Warning "VMware Tools not found. Install before seali
 $cbRoot = "$env:ProgramFiles\Cloudbase Solutions\Cloudbase-Init"
 if (-not (Test-Path $cbRoot)) { throw "Cloudbase-Init not installed at '$cbRoot'." }
 $cbSvc = Get-Service cloudbase-init -ErrorAction Stop
-if ($cbSvc.StartType -ne 'AutomaticDelayedStart') {
-  Write-Host "Setting cloudbase-init startup to Automatic (Delayed Start)..."
-  Set-Service cloudbase-init -StartupType AutomaticDelayedStart
+# Ensure Automatic start
+if ($cbSvc.StartType -ne 'Automatic') {
+    Write-Host "Setting cloudbase-init startup type to Automatic..."
+    Set-Service cloudbase-init -StartupType Automatic
 }
+
+# Then set DelayedAutoStart flag in registry
+Write-Host "Enabling delayed auto-start for cloudbase-init..."
+Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\cloudbase-init" -Name DelayedAutoStart -Value 1 -Force
+
 # Stop before sealing (prevents it kicking during shutdown)
 if ($cbSvc.Status -ne 'Stopped') {
   Write-Host "Stopping cloudbase-init..."
