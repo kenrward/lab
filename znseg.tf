@@ -40,6 +40,6 @@ module "zn_seg_server" {
   ready_check_path = module.ad_forest_dc.ready_check_path
   segtoken            = var.segtoken
 
-  depends_on = [null_resource.wait_for_dc]
+  depends_on = [module.win_member]
 }
 

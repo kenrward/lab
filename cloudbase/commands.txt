@@ -1,4 +1,24 @@
-Sysprep:
-[powershell]
+
+# Stop Cloudbase-Init if running (optional)
+Stop-Service cloudbase-init -ErrorAction SilentlyContinue
+
+# Remove setup and Sysprep logs / states
+Remove-Item -Recurse -Force "C:\Windows\Panther" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "C:\Windows\System32\Sysprep\Panther" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "C:\Windows\System32\Sysprep\Sysprep_succeeded.tag" -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force "C:\Windows\System32\Sysprep\Sysprep_in_progress.tag" -ErrorAction SilentlyContinue
+
+# Remove unattend files (Windows keeps old XMLs here)
+Remove-Item -Force "C:\Windows\Panther\Unattend.xml" -ErrorAction SilentlyContinue
+Remove-Item -Force "C:\Windows\System32\Sysprep\Unattend.xml" -ErrorAction SilentlyContinue
+
+# Optional: clear Cloudbase-Init logs to avoid stale metadata
+Remove-Item -Recurse -Force "C:\Program Files\Cloudbase Solutions\Cloudbase-Init\log" -ErrorAction SilentlyContinue
+
+# Optional: delete temp profiles
+Get-CimInstance Win32_UserProfile | Where-Object { -not $_.Special } | ForEach-Object { Remove-Item $_.LocalPath -Recurse -Force -ErrorAction SilentlyContinue }
+
 $unatt = "$env:ProgramFiles\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"
 & "$env:WINDIR\System32\Sysprep\sysprep.exe" /generalize /oobe /shutdown /unattend:"$unatt"
+
+

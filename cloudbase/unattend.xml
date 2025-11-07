@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend"
+          xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+          xmlns:cpi="urn:schemas-microsoft-com:cpi">
+
+  <!-- ================================================================== -->
+  <!-- 1. SPECIALIZE PASS                                                 -->
+  <!-- ================================================================== -->
+  <settings pass="specialize">
+
+    <!-- Basic computer setup -->
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <!-- Allow Windows to generate a unique hostname -->
+      <ComputerName>*</ComputerName>
+      <TimeZone>Eastern Standard Time</TimeZone>
+    </component>
+
+    <!-- Start VMware Tools / Cloudbase-Init once networking is ready -->
+    <component name="Microsoft-Windows-Deployment"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <RunSynchronous>
+        <!-- Ensure VMware Tools service has started -->
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Path>cmd /c net start VMTools</Path>
+          <Description>Start VMware Tools (if present)</Description>
+        </RunSynchronousCommand>
+
+        <!-- Start Cloudbase-Init after Sysprep specialize -->
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Path>cmd /c net start cloudbase-init</Path>
+          <Description>Start Cloudbase-Init service</Description>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+
+  </settings>
+
+  <!-- ================================================================== -->
+  <!-- 2. OOBE SYSTEM PASS                                                -->
+  <!-- ================================================================== -->
+  <settings pass="oobeSystem">
+
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>1</ProtectYourPC>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+      </OOBE>
+
+      <!-- Optional: auto-logon Administrator once for first boot -->
+      <AutoLogon>
+        <Password>
+          <Value></Value> <!-- leave blank, disables actual auto login -->
+          <PlainText>true</PlainText>
+        </Password>
+        <Enabled>false</Enabled>
+        <Username>Administrator</Username>
+      </AutoLogon>
+    </component>
+
+    <component name="Microsoft-Windows-Deployment"
+               processorArchitecture="amd64"
+               publicKeyToken="31bf3856ad364e35"
+               language="neutral"
+               versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+      <RunSynchronous>
+        <!-- Restart Cloudbase-Init at end of OOBE -->
+        <RunSynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Path>cmd /c net start cloudbase-init</Path>
+          <Description>Start Cloudbase-Init after OOBE</Description>
+        </RunSynchronousCommand>
+      </RunSynchronous>
+    </component>
+
+  </settings>
+
+  <!-- ================================================================== -->
+  <!-- 3. IMAGE METADATA (do not modify)                                 -->
+  <!-- ================================================================== -->
+  <cpi:offlineImage cpi:source="wim://wimfile.wim#Windows Server 2022 Datacenter"
+                    xmlns:cpi="urn:schemas-microsoft-com:cpi" />
+</unattend>

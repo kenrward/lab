@@ -57,6 +57,7 @@ resource "vsphere_virtual_machine" "member" {
 
   clone {
   template_uuid = data.vsphere_virtual_machine.template.id
+  linked_clone  = false
 
   customize {
     windows_options {
