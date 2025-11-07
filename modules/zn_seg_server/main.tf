@@ -1,3 +1,31 @@
+# --- vSphere Environment Data Sources ---
+data "vsphere_datacenter" "dc" {
+  name = var.vsphere_datacenter
+}
+
+data "vsphere_datastore" "datastore" {
+  name          = var.vsphere_datastore
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_network" "network" {
+  name          = var.vsphere_network
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_virtual_machine" "template" {
+  name          = var.template_name
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+data "vsphere_host" "esxi" {
+  name          = var.vsphere_host
+  datacenter_id = data.vsphere_datacenter.dc.id
+}
+
+locals {
+  resource_pool_id = data.vsphere_host.esxi.resource_pool_id
+}
 
 ########################################
 # Create Windows Member Server VM
@@ -29,6 +57,7 @@ resource "vsphere_virtual_machine" "seg" {
 
   clone {
   template_uuid = data.vsphere_virtual_machine.template.id
+  linked_clone  = false
 
   customize {
     windows_options {
