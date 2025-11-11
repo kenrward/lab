@@ -4,7 +4,9 @@ param(
 
     # Token to use to install the Cloud Connector
     [Parameter(Mandatory = $False)]
-    [String]$SegInstallToken = "<INSERT_SEG_TOKEN>",
+    [String]$SegInstallToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtOjYxOTc2NjFjYjI2YTQ1ODY5Y2NhNmM3OGJhYTJlOTEzYjQ4OWY0ZDMiLCJuYW1lIjoic2VnbWVudC1zZXJ2ZXItc2V0dXBfMTc2MjgyNTgxODAyNCIsImVpZCI6IjQ5NTU0NzYwLWE2NDgtNDA0MC04NGY2LWUyYTk4MGQxZDRjNyIsInNjb3BlIjoxMiwiZV9uYW1lIjoiQ0UtS2VuLUxhYi1BdXRvbWFpb24iLCJ2IjoyLCJpYXQiOjE3NjI4MjU4MTgsImV4cCI6MTc2Mjg1ODIxOCwiYXVkIjoiY2VrbGFiLXJlZ2lzdGVyLXNlZ21lbnQtc2VydmVyLnplcm9uZXR3b3Jrcy5jb20iLCJpc3MiOiJ6ZXJvbmV0d29ya3MuY29tL2FwaS92MS9hY2Nlc3MtdG9rZW4ifQ.W3i028QhHwJqd0zUuqkWTs47Csmugps3jEr7moRRbnR6EpjaU-VtGaF0qjDpcL9Pn27LkFVv-vq7iyUEhicxfpjx3vDM8q9n1y7Y3PjTDbPIrfiCZGYAR_ubjUo5x5Bt6NQVKnkHD_dgxduuja9kfgaFs7-yJqZH3ZD2_Pe0ipaY0dCmzNL51GiZcjkDGL7ixSMJ3hvS4sx9ro8mExMpOJmpRKDshNC2mlW4LC9qv5V7zhng-mbZnbWHUH2kLHRJeX7O8qpLhq8gZoqEtha1aBIsCamciuaQn97Mu5nnOw8LTf6dTZScpuHLpPBS2stAr_fOszenn1lENeE89TLnRw",
+    [Parameter(Mandatory = $False)]
+    [String]$APIToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtOmNlOGM2MTk4NzczYTllN2FjNWUxODYyZGM5MDU5N2E2MTUwNzM0MjAiLCJuYW1lIjoiVEYiLCJlaWQiOiI0OTU1NDc2MC1hNjQ4LTQwNDAtODRmNi1lMmE5ODBkMWQ0YzciLCJzY29wZSI6NCwiZV9uYW1lIjoiQ0UtS2VuLUxhYi1BdXRvbWFpb24iLCJ2IjoyLCJpYXQiOjE3NjI4MjU4NDYsImV4cCI6MTgyNTg5Nzg0NCwiYXVkIjoiY2VrbGFiLWFkbWluLnplcm9uZXR3b3Jrcy5jb20iLCJpc3MiOiJ6ZXJvbmV0d29ya3MuY29tL2FwaS92MS9hY2Nlc3MtdG9rZW4ifQ.LRddUS3SKPiyqFYyUQBy6Hva1Baq7IaklusBq86pUwu6d40DugSmZFdrcmCCwiOvPjHPKPx70-X_N49vmmChD-YsJTdwGEjnzxkCYHiOuBciammVrpvjHvFapkyLiV9PmQEM2wrDI4L4oPQ6ivP01l26IIgHCIMhv_3ZhOyBNV4doGvfbJRx8tq2MKwoRaIpGgxzBZz6YqA9OVjzNx6o_v2VMKfuSVOJ2ykvlhUXk6Yy4LN9uZWv28OJTqD9L4ZgEDvMKevekXTuvrP-c6XIXDgQL1pdRK99XOPmf4Heac1vgf0LpWo-jtCjO5FC1qhhloI__NPqdK8d-mtbZQ0Bmw",
     [Parameter(Mandatory = $False)]
     [String]$domain = "lab.local",
     [Parameter(Mandatory = $False)]
@@ -12,15 +14,13 @@ param(
     [Parameter(Mandatory = $False)]
     [String]$znuser = "znremoteadmin",
     [Parameter(Mandatory = $False)]
-    [String]$znpass = "",
+    [String]$znpass = "1234Ootball.",
     [Parameter(Mandatory = $False)]
     [System.Boolean]$skipad = "$false",
     [Parameter(Mandatory = $False)]
     [System.Boolean]$linkGPO = "$true",
     [Parameter(Mandatory = $False)]
-    [String]$ou = "OU=ZeroNetworks,DC=lab,DC=local",
-    [Parameter(Mandatory = $False)]
-    [String]$APIToken = "<INSERT_API_TOKEN>"
+    [String]$ou = "OU=ZeroNetworks,DC=lab,DC=local"
 )
 <#
 -domain": "str"
@@ -87,8 +87,7 @@ if ($SegInstallToken -eq "<INSERT_SEG_TOKEN>") {
 }
 
 # Define installer arguments
-$installerArgs = "-$CloudConnectorFunction -token $SegInstallToken -source $CloudConnectorSource"
-
+$installerArgs = "-$CloudConnectorFunction -token $SegInstallToken -silent -domain $domain -dc-fqdn $dcfqdn -zn-user $znuser -password $znpass -skip_ad_prerequsite $skipad -link_gpo $linkGPO  -ou_dn $ou"
 # Set up headers for API request
 $znHeaders = @{
     "Authorization" = $APIToken
