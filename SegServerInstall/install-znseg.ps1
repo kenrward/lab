@@ -16,9 +16,9 @@ param(
     [Parameter(Mandatory = $False)]
     [String]$znpass = "",
     [Parameter(Mandatory = $False)]
-    [System.Boolean]$skipad = "$false",
+    [System.Boolean]$skipad = $false,
     [Parameter(Mandatory = $False)]
-    [System.Boolean]$linkGPO = "$true",
+    [System.Boolean]$linkGPO = $true,
     [Parameter(Mandatory = $False)]
     [String]$ou = "OU=ZeroNetworks,DC=lab,DC=local"
 )
@@ -87,7 +87,7 @@ if ($SegInstallToken -eq "<INSERT_SEG_TOKEN>") {
 }
 
 # Define installer arguments
-$installerArgs = "-$CloudConnectorFunction -token $SegInstallToken -silent -domain $domain -dc-fqdn $dcfqdn -zn-user $znuser -password $znpass -skip_ad_prerequsite $skipad -link_gpo $linkGPO  -ou_dn $ou"
+$installerArgs = "-token $SegInstallToken -silent -domain $domain -dc-fqdn $dcfqdn -zn-user $znuser -password $znpass -skip_ad_prerequsite $skipad -link_gpo $linkGPO  -ou_dn $ou"
 # Set up headers for API request
 $znHeaders = @{
     "Authorization" = $APIToken
