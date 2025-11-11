@@ -14,7 +14,7 @@ param(
     [Parameter(Mandatory = $False)]
     [String]$znuser = "znremoteadmin",
     [Parameter(Mandatory = $False)]
-    [String]$znpass = "1234Ootball.",
+    [String]$znpass = "SuperSecr3tPassWord",
     [Parameter(Mandatory = $False)]
     [System.Boolean]$skipad = "$false",
     [Parameter(Mandatory = $False)]
