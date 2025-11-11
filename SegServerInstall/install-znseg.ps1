@@ -5,10 +5,31 @@ param(
     # Token to use to install the Cloud Connector
     [Parameter(Mandatory = $False)]
     [String]$SegInstallToken = "<INSERT_SEG_TOKEN>",
-
+    [Parameter(Mandatory = $False)]
+    [String]$domain = "lab.local",
+    [Parameter(Mandatory = $False)]
+    [String]$dcfqdn = "kne-tflab-dc01.lab.local",
+    [Parameter(Mandatory = $False)]
+    [String]$znuser = "znremoteadmin",
+    [Parameter(Mandatory = $False)]
+    [String]$znpass = "",
+    [Parameter(Mandatory = $False)]
+    [System.Boolean]$skipad = "$false",
+    [Parameter(Mandatory = $False)]
+    [System.Boolean]$linkGPO = "$true",
+    [Parameter(Mandatory = $False)]
+    [String]$ou = "OU=ZeroNetworks,DC=lab,DC=local",
     [Parameter(Mandatory = $False)]
     [String]$APIToken = "<INSERT_API_TOKEN>"
 )
+<#
+-domain": "str"
+-dc-fqdn: "str"
+-zn-user: "str"
+-password: "str"
+-skip_ad_prerequsite: bool, #default
+-link_gpo: bool #defult
+-ou_dn: "str" #default
 
 # Extract Aud from JWT to find cloud connector URL.
 # Your JWT token
@@ -36,7 +57,7 @@ $payloadObj = $json | ConvertFrom-Json
 
 # Extract the 'aud' field
 $audience = $payloadObj.aud
-
+#>
 #Check Powershell version
 $pwshVersion = $PSVersionTable.PSVersion
 
@@ -119,7 +140,7 @@ try {
 }
 
 # Locate the installer executable
-$installerFile = Get-ChildItem -Path "$installerFolderPath" -Filter "ZnCloudConnectorSetup-x64.exe" -Recurse -ErrorAction Stop
+$installerFile = Get-ChildItem -Path "$installerFolderPath" -Filter "Trust-Setup.exe" -Recurse -ErrorAction Stop
 if (-not $installerFile) {
     Write-Log -Message "Installer executable not found in the extracted files." -Level "ERROR"
     exit
