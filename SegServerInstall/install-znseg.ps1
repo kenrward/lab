@@ -87,7 +87,7 @@ if ($SegInstallToken -eq "<INSERT_SEG_TOKEN>") {
 }
 
 # Define installer arguments
-$installerArgs = "-token $SegInstallToken -silent -domain $domain -dc-fqdn $dcfqdn -zn-user $znuser -password $znpass -skip_ad_prerequsite $skipad -link_gpo $linkGPO  -ou_dn $ou"
+$installerArgs = "-token $SegInstallToken -silent -domain $domain -dc-fqdn $dcfqdn -zn-user $znuser -password $znpass -skip-ad-prerequisite $skipad -link-gpo $linkGPO  -ou_dn $ou"
 # Set up headers for API request
 $znHeaders = @{
     "Authorization" = $APIToken
