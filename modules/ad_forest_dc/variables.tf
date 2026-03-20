@@ -94,3 +94,7 @@ variable "vsphere_host" {
   description = "Name or IP of the ESXi host where the VM will be created"
   type        = string
 }
+variable "guest_version" {
+  description = "vSphere guest OS version identifier"
+  type        = string
+}

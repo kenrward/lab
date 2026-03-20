@@ -39,7 +39,7 @@ resource "vsphere_virtual_machine" "member" {
 
   num_cpus  = var.cores
   memory    = var.memory_mb
-  guest_id  = "windows2019srv_64Guest"
+  guest_id  = var.guest_version
   scsi_type = "lsilogic-sas"
   firmware         = "efi"
 
@@ -57,6 +57,7 @@ resource "vsphere_virtual_machine" "member" {
 
   clone {
   template_uuid = data.vsphere_virtual_machine.template.id
+  linked_clone  = false
 
   customize {
     windows_options {

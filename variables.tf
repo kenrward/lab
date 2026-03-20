@@ -101,6 +101,12 @@ variable "template_name" {
   type        = string
 }
 
+variable "guest_version" {
+  description = "vSphere guest OS version identifier"
+  type        = string
+}
+
+
 variable "folder" {
   description = "Optional folder in vSphere to place the VM"
   type        = string
@@ -125,4 +131,13 @@ variable "disk_size_gb" {
   type        = number
   default     = 150
 }
+variable "segtoken" {
+  description = "Zero Networks Segment Server token for registration"
+  type        = string
+  sensitive   = true
+}
 
+variable "vsphere_host" {
+  description = "The FQDN of the ESXi host as seen in vCenter"
+  type        = string
+}
