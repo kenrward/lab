@@ -136,3 +136,8 @@ variable "segtoken" {
   type        = string
   sensitive   = true
 }
+
+variable "vsphere_host" {
+  description = "The FQDN of the ESXi host as seen in vCenter"
+  type        = string
+}
